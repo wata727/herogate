@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -15,64 +16,23 @@ type Log struct {
 	Message string
 }
 
-func (c *Client) DescribeLogs(appName string) []*Log {
-	pipelineReq := c.Codepipeline.ListPipelineExecutionsRequest(&codepipeline.ListPipelineExecutionsInput{
-		PipelineName: aws.String(appName),
-	})
-
-	pipelineResp, err := pipelineReq.Send()
+func (c *Client) DescribeBuilderLogs(appName string) []*Log {
+	executionId, err := c.describeLatestExecutionId(appName)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"appName": appName,
-		}).Fatal("Failed to get the pipeline: " + err.Error())
-	}
-
-	executions := pipelineResp.PipelineExecutionSummaries
-	if len(executions) == 0 {
 		return []*Log{}
 	}
 
-	var logs []*Log
-	for _, stage := range c.describeStageStates(appName, *executions[0].PipelineExecutionId) {
-		switch *stage.StageName {
-		case "Source":
-			logs = append(logs, extractSourceLogs(&stage)...)
-		case "Build":
-			logs = append(logs, c.describeBuildLogs(*stage.ActionStates[0].LatestExecution.ExternalExecutionId)...)
-		case "Staging":
-			logs = append(logs, c.describeECSServiceLogs(appName)...)
-		default:
-			log.Fatalf("Unexpected pipeline stages detected: %s", *stage.StageName)
+	var buildId string
+	for _, stage := range c.describeStageStates(appName, executionId) {
+		if *stage.StageName == "Build" && len(stage.ActionStates) > 0 {
+			buildId = *stage.ActionStates[0].LatestExecution.ExternalExecutionId
 		}
 	}
 
-	return logs
-}
-
-func (c *Client) describeStageStates(appName string, executionId string) []codepipeline.StageState {
-	req := c.Codepipeline.GetPipelineStateRequest(&codepipeline.GetPipelineStateInput{
-		Name: aws.String(appName),
-	})
-
-	resp, err := req.Send()
-	if err != nil {
-		log.WithFields(log.Fields{
-			"appName":     appName,
-			"executionId": executionId,
-		}).Fatal("Failed to get the pipeline stage states: " + err.Error())
+	if buildId == "" {
+		return []*Log{}
 	}
 
-	var stageStates []codepipeline.StageState
-	for _, stage := range resp.StageStates {
-		if *stage.LatestExecution.PipelineExecutionId == executionId {
-			stageStates = append(stageStates, stage)
-		}
-	}
-
-	return stageStates
-}
-
-func (c *Client) describeBuildLogs(buildId string) []*Log {
 	batchGetBuildsRequest := c.Codebuild.BatchGetBuildsRequest(&codebuild.BatchGetBuildsInput{
 		Ids: []string{buildId},
 	})
@@ -110,7 +70,7 @@ func (c *Client) describeBuildLogs(buildId string) []*Log {
 	return logs
 }
 
-func (c *Client) describeECSServiceLogs(appName string) []*Log {
+func (c *Client) DescribeDeployerLogs(appName string) []*Log {
 	req := c.Ecs.DescribeServicesRequest(&ecs.DescribeServicesInput{
 		Cluster:  aws.String(appName),
 		Services: []string{appName},
@@ -133,14 +93,45 @@ func (c *Client) describeECSServiceLogs(appName string) []*Log {
 	return logs
 }
 
-func extractSourceLogs(stage *codepipeline.StageState) []*Log {
-	if stage.LatestExecution.Status == "Succeeded" {
-		return []*Log{
-			{
-				Message: "Source changes detected.",
-			},
+func (c *Client) describeLatestExecutionId(appName string) (string, error) {
+	req := c.Codepipeline.ListPipelineExecutionsRequest(&codepipeline.ListPipelineExecutionsInput{
+		PipelineName: aws.String(appName),
+	})
+
+	resp, err := req.Send()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"appName": appName,
+		}).Fatal("Failed to get the pipeline executions: " + err.Error())
+	}
+
+	executions := resp.PipelineExecutionSummaries
+	if len(executions) == 0 {
+		return "", errors.New("Empty executions")
+	}
+
+	return *executions[0].PipelineExecutionId, nil
+}
+
+func (c *Client) describeStageStates(appName string, executionId string) []codepipeline.StageState {
+	req := c.Codepipeline.GetPipelineStateRequest(&codepipeline.GetPipelineStateInput{
+		Name: aws.String(appName),
+	})
+
+	resp, err := req.Send()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"appName":     appName,
+			"executionId": executionId,
+		}).Fatal("Failed to get the pipeline stage states: " + err.Error())
+	}
+
+	var stageStates []codepipeline.StageState
+	for _, stage := range resp.StageStates {
+		if *stage.LatestExecution.PipelineExecutionId == executionId {
+			stageStates = append(stageStates, stage)
 		}
 	}
 
-	return []*Log{}
+	return stageStates
 }

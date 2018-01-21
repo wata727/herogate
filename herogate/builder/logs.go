@@ -1,4 +1,4 @@
-package herogate
+package builder
 
 import (
 	log "github.com/sirupsen/logrus"
@@ -9,7 +9,7 @@ import (
 func Logs(c *cli.Context) {
 	client := api.NewClient()
 
-	for _, eventLog := range client.DescribeLogs("fargateTest") {
+	for _, eventLog := range client.DescribeBuilderLogs("fargateTest") {
 		log.Info(eventLog.Message)
 	}
 }

@@ -13,7 +13,8 @@ func NewApp() *cli.App {
 	app.Version = Version
 
 	app.Commands = []cli.Command{
-		command.LogsCommand(),
+		command.BuilderCommand(),
+		command.DeployerCommand(),
 	}
 
 	return app
