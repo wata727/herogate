@@ -2,7 +2,7 @@ package command
 
 import (
 	"github.com/urfave/cli"
-	"github.com/wata727/herogate/logs"
+	"github.com/wata727/herogate/herogate"
 )
 
 func LogsCommand() cli.Command {
@@ -10,7 +10,7 @@ func LogsCommand() cli.Command {
 		Name:   "logs",
 		Usage:  "Display application or system logs.",
 		Flags:  logsFlags(),
-		Action: logs.Logs,
+		Action: herogate.Logs,
 	}
 }
 
