@@ -13,6 +13,7 @@ import (
 )
 
 type Log struct {
+	Id      string
 	Message string
 }
 
@@ -24,7 +25,7 @@ func (c *Client) DescribeBuilderLogs(appName string) []*Log {
 
 	var buildId string
 	for _, stage := range c.describeStageStates(appName, executionId) {
-		if *stage.StageName == "Build" && len(stage.ActionStates) > 0 {
+		if *stage.StageName == "Build" && len(stage.ActionStates) > 0 && stage.ActionStates[0].LatestExecution.ExternalExecutionId != nil {
 			buildId = *stage.ActionStates[0].LatestExecution.ExternalExecutionId
 		}
 	}
@@ -63,6 +64,7 @@ func (c *Client) DescribeBuilderLogs(appName string) []*Log {
 	var logs []*Log
 	for _, event := range getLogEventsResponse.Events {
 		logs = append(logs, &Log{
+			Id:      buildId,
 			Message: strings.TrimRight(*event.Message, "\n"),
 		})
 	}

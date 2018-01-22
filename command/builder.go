@@ -19,6 +19,16 @@ func builderLogsCommand() cli.Command {
 	return cli.Command{
 		Name:   "logs",
 		Usage:  "Display builder logs (CodeBuild).",
+		Flags:  builderLogsFlags(),
 		Action: builder.Logs,
+	}
+}
+
+func builderLogsFlags() []cli.Flag {
+	return []cli.Flag{
+		cli.BoolFlag{
+			Name:  "tail, t",
+			Usage: "Continually display logs",
+		},
 	}
 }
