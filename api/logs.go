@@ -2,7 +2,10 @@ package api
 
 import (
 	"errors"
+	"fmt"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
@@ -13,8 +16,9 @@ import (
 )
 
 type Log struct {
-	Id      string
-	Message string
+	Id        string
+	CreatedAt time.Time
+	Message   string
 }
 
 func (c *Client) DescribeBuilderLogs(appName string) []*Log {
@@ -88,9 +92,15 @@ func (c *Client) DescribeDeployerLogs(appName string) []*Log {
 	var logs []*Log
 	for _, event := range resp.Services[0].Events {
 		logs = append(logs, &Log{
-			Message: *event.Message,
+			Id:        *event.Id,
+			CreatedAt: *event.CreatedAt,
+			Message:   fmt.Sprintf("%s %s", *event.CreatedAt, *event.Message),
 		})
 	}
+
+	sort.Slice(logs, func(i, j int) bool {
+		return logs[i].CreatedAt.Before(logs[j].CreatedAt)
+	})
 
 	return logs
 }
