@@ -1,4 +1,4 @@
-package builder
+package herogate
 
 import (
 	"time"
@@ -12,32 +12,31 @@ func Logs(c *cli.Context) {
 	client := api.NewClient()
 
 	var lastEventLog *api.Log
-	for _, eventLog := range fetchNewLogs(client, "fargateTest", lastEventLog) {
+	for _, eventLog := range fetchNewLogs(client, "fargateTest", c, lastEventLog) {
 		lastEventLog = eventLog
 		log.Info(eventLog.Message)
 	}
 
 	for c.Bool("tail") {
 		time.Sleep(5 * time.Second)
-		for _, eventLog := range fetchNewLogs(client, "fargateTest", lastEventLog) {
+		for _, eventLog := range fetchNewLogs(client, "fargateTest", c, lastEventLog) {
 			lastEventLog = eventLog
 			log.Info(eventLog.Message)
 		}
 	}
 }
 
-func fetchNewLogs(client *api.Client, appName string, lastEventLog *api.Log) []*api.Log {
-	eventLogs := client.DescribeBuilderLogs(appName)
+func fetchNewLogs(client *api.Client, appName string, c *cli.Context, lastEventLog *api.Log) []*api.Log {
+	eventLogs := client.DescribeLogs(appName, &api.DescribeLogsOptions{
+		Process: c.String("process"),
+		Source:  c.String("source"),
+	})
 	if lastEventLog == nil {
 		return eventLogs
 	}
 
-	if len(eventLogs) > 0 && lastEventLog.Id != eventLogs[len(eventLogs)-1].Id {
-		return eventLogs
-	}
-
 	for i := len(eventLogs) - 1; i >= 0; i-- {
-		if lastEventLog.Message == eventLogs[i].Message {
+		if lastEventLog.Id == eventLogs[i].Id {
 			return eventLogs[i+1:]
 		}
 	}

@@ -14,10 +14,10 @@ import (
 )
 
 type Client struct {
-	Codepipeline   codepipelineiface.CodePipelineAPI
-	Codebuild      codebuildiface.CodeBuildAPI
-	Cloudwatchlogs cloudwatchlogsiface.CloudWatchLogsAPI
-	Ecs            ecsiface.ECSAPI
+	CodePipeline   codepipelineiface.CodePipelineAPI
+	CodeBuild      codebuildiface.CodeBuildAPI
+	CloudWatchLogs cloudwatchlogsiface.CloudWatchLogsAPI
+	ECS            ecsiface.ECSAPI
 }
 
 func NewClient() *Client {
@@ -27,9 +27,9 @@ func NewClient() *Client {
 	}
 
 	return &Client{
-		Codepipeline:   codepipeline.New(cfg),
-		Codebuild:      codebuild.New(cfg),
-		Cloudwatchlogs: cloudwatchlogs.New(cfg),
-		Ecs:            ecs.New(cfg),
+		CodePipeline:   codepipeline.New(cfg),
+		CodeBuild:      codebuild.New(cfg),
+		CloudWatchLogs: cloudwatchlogs.New(cfg),
+		ECS:            ecs.New(cfg),
 	}
 }
