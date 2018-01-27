@@ -18,6 +18,7 @@ func logsFlags() []cli.Flag {
 	return []cli.Flag{
 		cli.IntFlag{
 			Name:  "num, n",
+			Value: 100,
 			Usage: "number of lines to display",
 		},
 		cli.StringFlag{

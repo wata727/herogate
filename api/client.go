@@ -13,6 +13,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Client is the Herogate API client.
+// This is a wrapper of AWS API clients.
 type Client struct {
 	CodePipeline   codepipelineiface.CodePipelineAPI
 	CodeBuild      codebuildiface.CodeBuildAPI
@@ -20,6 +22,7 @@ type Client struct {
 	ECS            ecsiface.ECSAPI
 }
 
+// NewClient initializes a new client from AWS config.
 func NewClient() *Client {
 	cfg, err := external.LoadDefaultAWSConfig()
 	if err != nil {

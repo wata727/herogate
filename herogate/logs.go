@@ -10,17 +10,23 @@ import (
 )
 
 func Logs(c *cli.Context) {
+	appName := "fargateTest"
 	client := api.NewClient()
 
 	var lastEventLog *log.Log
-	for _, eventLog := range fetchNewLogs(client, "fargateTest", c, lastEventLog) {
+	eventLogs := fetchNewLogs(client, appName, c, lastEventLog)
+	if len(eventLogs)-c.Int("num") > 0 {
+		eventLogs = eventLogs[len(eventLogs)-c.Int("num"):]
+	}
+
+	for _, eventLog := range eventLogs {
 		lastEventLog = eventLog
 		fmt.Fprintln(c.App.Writer, eventLog.Format())
 	}
 
 	for c.Bool("tail") {
 		time.Sleep(5 * time.Second)
-		for _, eventLog := range fetchNewLogs(client, "fargateTest", c, lastEventLog) {
+		for _, eventLog := range fetchNewLogs(client, appName, c, lastEventLog) {
 			lastEventLog = eventLog
 			fmt.Fprintln(c.App.Writer, eventLog.Format())
 		}
@@ -29,7 +35,7 @@ func Logs(c *cli.Context) {
 
 func fetchNewLogs(client *api.Client, appName string, c *cli.Context, lastEventLog *log.Log) []*log.Log {
 	eventLogs := client.DescribeLogs(appName, &api.DescribeLogsOptions{
-		Process: c.String("process"),
+		Process: c.String("ps"),
 		Source:  c.String("source"),
 	})
 	if lastEventLog == nil {

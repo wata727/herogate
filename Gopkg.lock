@@ -49,6 +49,12 @@
   version = "v1.32.0"
 
 [[projects]]
+  name = "github.com/golang/mock"
+  packages = ["gomock"]
+  revision = "13f360950a79f5864a972c786a10a50e44b69541"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/jmespath/go-jmespath"
   packages = ["."]
   revision = "0b12d6b5"
@@ -95,6 +101,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "bf4586192e5c6a1b76fb59dc2141073c3f86cec2bf510ca669ec8b7403b7a1cb"
+  inputs-digest = "2c1086d4d8c721a3699a184160cd4dbb30c45b9b5128754db06e20824fb135b9"
   solver-name = "gps-cdcl"
   solver-version = 1
