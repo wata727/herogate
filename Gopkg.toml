@@ -27,3 +27,11 @@
 [[constraint]]
   name = "github.com/aws/aws-sdk-go-v2"
   version = "2.0.0-preview.2"
+
+[[constraint]]
+  name = "github.com/fatih/color"
+  version = "1.5.0"
+
+[[constraint]]
+  name = "github.com/sirupsen/logrus"
+  version = "v1.0.4"

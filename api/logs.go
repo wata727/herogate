@@ -4,30 +4,13 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go-v2/service/codebuild"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
-	log "github.com/sirupsen/logrus"
-)
-
-type Log struct {
-	Id        string
-	Timestamp time.Time
-	Source    string
-	Process   string
-	Message   string
-}
-
-const (
-	HEROGATE_SOURCE = "herogate"
-)
-
-const (
-	BUIDLER_PROCESS  = "builder"
-	DEPLOYER_PROCESS = "deployer"
+	"github.com/sirupsen/logrus"
+	"github.com/wata727/herogate/log"
 )
 
 type DescribeLogsOptions struct {
@@ -35,19 +18,19 @@ type DescribeLogsOptions struct {
 	Source  string
 }
 
-func (c *Client) DescribeLogs(appName string, options *DescribeLogsOptions) []*Log {
-	var logs []*Log
+func (c *Client) DescribeLogs(appName string, options *DescribeLogsOptions) []*log.Log {
+	var logs []*log.Log
 
 	if options == nil {
 		return logs
 	}
 
-	if options.Source == "" || options.Source == HEROGATE_SOURCE || options.Process == "" || options.Process == BUIDLER_PROCESS {
-		logs = append(logs, c.DescribeBuilderLogs(appName)...)
+	if options.Source == "" || options.Source == log.HEROGATE_SOURCE || options.Process == "" || options.Process == log.BUIDLER_PROCESS {
+		logs = append(logs, c.describeBuilderLogs(appName)...)
 	}
 
-	if options.Source == "" || options.Source == HEROGATE_SOURCE || options.Process == "" || options.Process == DEPLOYER_PROCESS {
-		logs = append(logs, c.DescribeDeployerLogs(appName)...)
+	if options.Source == "" || options.Source == log.HEROGATE_SOURCE || options.Process == "" || options.Process == log.DEPLOYER_PROCESS {
+		logs = append(logs, c.describeDeployerLogs(appName)...)
 	}
 
 	sort.Slice(logs, func(i, j int) bool {
@@ -57,20 +40,20 @@ func (c *Client) DescribeLogs(appName string, options *DescribeLogsOptions) []*L
 	return logs
 }
 
-func (c *Client) DescribeBuilderLogs(appName string) []*Log {
+func (c *Client) describeBuilderLogs(appName string) []*log.Log {
 	listBuildsForProjectRequest := c.CodeBuild.ListBuildsForProjectRequest(&codebuild.ListBuildsForProjectInput{
 		ProjectName: aws.String(appName),
 	})
 
 	listBuildsForProjectResponse, err := listBuildsForProjectRequest.Send()
 	if err != nil {
-		log.WithFields(log.Fields{
+		logrus.WithFields(logrus.Fields{
 			"ProjectName": appName,
 		}).Fatal("Failed to get the project: " + err.Error())
 	}
 
 	if len(listBuildsForProjectResponse.Ids) == 0 {
-		return []*Log{}
+		return []*log.Log{}
 	}
 	buildId := listBuildsForProjectResponse.Ids[0]
 	batchGetBuildsRequest := c.CodeBuild.BatchGetBuildsRequest(&codebuild.BatchGetBuildsInput{
@@ -79,7 +62,7 @@ func (c *Client) DescribeBuilderLogs(appName string) []*Log {
 
 	batchGetBuildsResponse, err := batchGetBuildsRequest.Send()
 	if err != nil {
-		log.WithFields(log.Fields{
+		logrus.WithFields(logrus.Fields{
 			"BuildId": buildId,
 		}).Fatal("Failed to get the build: " + err.Error())
 	}
@@ -94,19 +77,19 @@ func (c *Client) DescribeBuilderLogs(appName string) []*Log {
 
 	getLogEventsResponse, err := getLogEventsRequest.Send()
 	if err != nil {
-		log.WithFields(log.Fields{
+		logrus.WithFields(logrus.Fields{
 			"group":  group,
 			"stream": stream,
 		}).Fatal("Failed to get the build logs: " + err.Error())
 	}
 
-	var logs []*Log
+	var logs []*log.Log
 	for _, event := range getLogEventsResponse.Events {
-		logs = append(logs, &Log{
+		logs = append(logs, &log.Log{
 			Id:        fmt.Sprintf("%s-%d-%s", buildId, aws.Int64Value(event.Timestamp), aws.StringValue(event.Message)),
-			Timestamp: aws.MillisecondsTimeValue(event.Timestamp),
-			Source:    HEROGATE_SOURCE,
-			Process:   BUIDLER_PROCESS,
+			Timestamp: aws.MillisecondsTimeValue(event.Timestamp).UTC(),
+			Source:    log.HEROGATE_SOURCE,
+			Process:   log.BUIDLER_PROCESS,
 			Message:   strings.TrimRight(aws.StringValue(event.Message), "\n"),
 		})
 	}
@@ -114,7 +97,7 @@ func (c *Client) DescribeBuilderLogs(appName string) []*Log {
 	return logs
 }
 
-func (c *Client) DescribeDeployerLogs(appName string) []*Log {
+func (c *Client) describeDeployerLogs(appName string) []*log.Log {
 	req := c.ECS.DescribeServicesRequest(&ecs.DescribeServicesInput{
 		Cluster:  aws.String(appName),
 		Services: []string{appName},
@@ -122,18 +105,18 @@ func (c *Client) DescribeDeployerLogs(appName string) []*Log {
 
 	resp, err := req.Send()
 	if err != nil {
-		log.WithFields(log.Fields{
+		logrus.WithFields(logrus.Fields{
 			"appName": appName,
 		}).Fatal("Failed to get the ECS service: " + err.Error())
 	}
 
-	var logs []*Log
+	var logs []*log.Log
 	for _, event := range resp.Services[0].Events {
-		logs = append(logs, &Log{
+		logs = append(logs, &log.Log{
 			Id:        aws.StringValue(event.Id),
 			Timestamp: aws.TimeValue(event.CreatedAt),
-			Source:    HEROGATE_SOURCE,
-			Process:   DEPLOYER_PROCESS,
+			Source:    log.HEROGATE_SOURCE,
+			Process:   log.DEPLOYER_PROCESS,
 			Message:   aws.StringValue(event.Message),
 		})
 	}

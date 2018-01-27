@@ -4,7 +4,6 @@
 [[projects]]
   name = "github.com/aws/aws-sdk-go-v2"
   packages = [
-    ".",
     "aws",
     "aws/awserr",
     "aws/defaults",
@@ -24,11 +23,24 @@
     "private/protocol/query/queryutil",
     "private/protocol/rest",
     "private/protocol/xml/xmlutil",
+    "service/cloudwatchlogs",
+    "service/cloudwatchlogs/cloudwatchlogsiface",
+    "service/codebuild",
+    "service/codebuild/codebuildiface",
     "service/codepipeline",
+    "service/codepipeline/codepipelineiface",
+    "service/ecs",
+    "service/ecs/ecsiface",
     "service/sts"
   ]
   revision = "b8e7febd4b80c6517240e473410b54d4e63fed1d"
   version = "v2.0.0-preview.2"
+
+[[projects]]
+  name = "github.com/fatih/color"
+  packages = ["."]
+  revision = "570b54cabe6b8eb0bc2dfce68d964677d63b5260"
+  version = "v1.5.0"
 
 [[projects]]
   name = "github.com/go-ini/ini"
@@ -40,12 +52,6 @@
   name = "github.com/jmespath/go-jmespath"
   packages = ["."]
   revision = "0b12d6b5"
-
-[[projects]]
-  name = "github.com/k0kubun/pp"
-  packages = ["."]
-  revision = "027a6d1765d673d337e687394dbe780dd64e2a1e"
-  version = "v2.3.0"
 
 [[projects]]
   name = "github.com/mattn/go-colorable"
@@ -60,6 +66,12 @@
   version = "v0.0.3"
 
 [[projects]]
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  revision = "d682213848ed68c0a260ca37d6dd5ace8423f5ba"
+  version = "v1.0.4"
+
+[[projects]]
   name = "github.com/urfave/cli"
   packages = ["."]
   revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
@@ -67,13 +79,22 @@
 
 [[projects]]
   branch = "master"
+  name = "golang.org/x/crypto"
+  packages = ["ssh/terminal"]
+  revision = "0efb9460aaf800c6376acf625be2853bceac2e06"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix"]
+  packages = [
+    "unix",
+    "windows"
+  ]
   revision = "2c42eef0765b9837fbdab12011af7830f55f88f0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c24994aa49f0232b968dd54606e56a5e6d011c8fd732f857b769730933353b47"
+  inputs-digest = "bf4586192e5c6a1b76fb59dc2141073c3f86cec2bf510ca669ec8b7403b7a1cb"
   solver-name = "gps-cdcl"
   solver-version = 1

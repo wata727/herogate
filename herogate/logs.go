@@ -1,32 +1,33 @@
 package herogate
 
 import (
+	"fmt"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"github.com/wata727/herogate/api"
+	"github.com/wata727/herogate/log"
 )
 
 func Logs(c *cli.Context) {
 	client := api.NewClient()
 
-	var lastEventLog *api.Log
+	var lastEventLog *log.Log
 	for _, eventLog := range fetchNewLogs(client, "fargateTest", c, lastEventLog) {
 		lastEventLog = eventLog
-		log.Info(eventLog.Message)
+		fmt.Fprintln(c.App.Writer, eventLog.Format())
 	}
 
 	for c.Bool("tail") {
 		time.Sleep(5 * time.Second)
 		for _, eventLog := range fetchNewLogs(client, "fargateTest", c, lastEventLog) {
 			lastEventLog = eventLog
-			log.Info(eventLog.Message)
+			fmt.Fprintln(c.App.Writer, eventLog.Format())
 		}
 	}
 }
 
-func fetchNewLogs(client *api.Client, appName string, c *cli.Context, lastEventLog *api.Log) []*api.Log {
+func fetchNewLogs(client *api.Client, appName string, c *cli.Context, lastEventLog *log.Log) []*log.Log {
 	eventLogs := client.DescribeLogs(appName, &api.DescribeLogsOptions{
 		Process: c.String("process"),
 		Source:  c.String("source"),
@@ -41,5 +42,5 @@ func fetchNewLogs(client *api.Client, appName string, c *cli.Context, lastEventL
 		}
 	}
 
-	return []*api.Log{}
+	return []*log.Log{}
 }
