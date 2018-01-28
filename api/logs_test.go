@@ -19,9 +19,9 @@ func TestDescribeLogs__noConfig(t *testing.T) {
 	defer ctrl.Finish()
 
 	client := NewClient()
-	client.CodeBuild = mockCodeBuild(ctrl)
-	client.CloudWatchLogs = mockCloudWatchLogs(ctrl)
-	client.ECS = mockECS(ctrl)
+	client.codeBuild = mockCodeBuild(ctrl)
+	client.cloudWatchLogs = mockCloudWatchLogs(ctrl)
+	client.ecs = mockECS(ctrl)
 
 	expected := []*log.Log{
 		{
@@ -29,7 +29,7 @@ func TestDescribeLogs__noConfig(t *testing.T) {
 			Timestamp: time.Date(2018, time.February, 2, 11, 0, 5, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
-			Message:   "(service fargateTest) has reached a steady state.",
+			Message:   "(service TestApp) has reached a steady state.",
 		},
 		{
 			Id:        "TestApp:d6940abd-ba2c-4e36-b124-1c3d81f9ee26-1517621401000-[Container] 2018/01/26 18:20:01 Waiting for agent ping\n",
@@ -64,7 +64,7 @@ func TestDescribeLogs__noConfig(t *testing.T) {
 			Timestamp: time.Date(2018, time.February, 3, 1, 35, 10, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
-			Message:   "(service fargateTest) has reached a steady state.",
+			Message:   "(service TestApp) has reached a steady state.",
 		},
 	}
 
@@ -79,9 +79,9 @@ func TestDescribeLogs__sourceHerogate(t *testing.T) {
 	defer ctrl.Finish()
 
 	client := NewClient()
-	client.CodeBuild = mockCodeBuild(ctrl)
-	client.CloudWatchLogs = mockCloudWatchLogs(ctrl)
-	client.ECS = mockECS(ctrl)
+	client.codeBuild = mockCodeBuild(ctrl)
+	client.cloudWatchLogs = mockCloudWatchLogs(ctrl)
+	client.ecs = mockECS(ctrl)
 
 	expected := []*log.Log{
 		{
@@ -89,7 +89,7 @@ func TestDescribeLogs__sourceHerogate(t *testing.T) {
 			Timestamp: time.Date(2018, time.February, 2, 11, 0, 5, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
-			Message:   "(service fargateTest) has reached a steady state.",
+			Message:   "(service TestApp) has reached a steady state.",
 		},
 		{
 			Id:        "TestApp:d6940abd-ba2c-4e36-b124-1c3d81f9ee26-1517621401000-[Container] 2018/01/26 18:20:01 Waiting for agent ping\n",
@@ -124,7 +124,7 @@ func TestDescribeLogs__sourceHerogate(t *testing.T) {
 			Timestamp: time.Date(2018, time.February, 3, 1, 35, 10, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
-			Message:   "(service fargateTest) has reached a steady state.",
+			Message:   "(service TestApp) has reached a steady state.",
 		},
 	}
 
@@ -139,8 +139,8 @@ func TestDescribeLogs__processBuilder(t *testing.T) {
 	defer ctrl.Finish()
 
 	client := NewClient()
-	client.CodeBuild = mockCodeBuild(ctrl)
-	client.CloudWatchLogs = mockCloudWatchLogs(ctrl)
+	client.codeBuild = mockCodeBuild(ctrl)
+	client.cloudWatchLogs = mockCloudWatchLogs(ctrl)
 
 	expected := []*log.Log{
 		{
@@ -170,7 +170,7 @@ func TestDescribeLogs__processDeployer(t *testing.T) {
 	defer ctrl.Finish()
 
 	client := NewClient()
-	client.ECS = mockECS(ctrl)
+	client.ecs = mockECS(ctrl)
 
 	expected := []*log.Log{
 		{
@@ -178,7 +178,7 @@ func TestDescribeLogs__processDeployer(t *testing.T) {
 			Timestamp: time.Date(2018, time.February, 2, 11, 0, 5, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
-			Message:   "(service fargateTest) has reached a steady state.",
+			Message:   "(service TestApp) has reached a steady state.",
 		},
 		{
 			Id:        "8720a9e8-2a5a-4f83-8b01-d9fc740fa6e4",
@@ -199,7 +199,7 @@ func TestDescribeLogs__processDeployer(t *testing.T) {
 			Timestamp: time.Date(2018, time.February, 3, 1, 35, 10, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
-			Message:   "(service fargateTest) has reached a steady state.",
+			Message:   "(service TestApp) has reached a steady state.",
 		},
 	}
 
@@ -214,8 +214,8 @@ func TestDescribeLogs__sourceHerogate__processBuilder(t *testing.T) {
 	defer ctrl.Finish()
 
 	client := NewClient()
-	client.CodeBuild = mockCodeBuild(ctrl)
-	client.CloudWatchLogs = mockCloudWatchLogs(ctrl)
+	client.codeBuild = mockCodeBuild(ctrl)
+	client.cloudWatchLogs = mockCloudWatchLogs(ctrl)
 
 	expected := []*log.Log{
 		{
@@ -248,7 +248,7 @@ func TestDescribeLogs__sourceHerogate__processDeployer(t *testing.T) {
 	defer ctrl.Finish()
 
 	client := NewClient()
-	client.ECS = mockECS(ctrl)
+	client.ecs = mockECS(ctrl)
 
 	expected := []*log.Log{
 		{
@@ -256,7 +256,7 @@ func TestDescribeLogs__sourceHerogate__processDeployer(t *testing.T) {
 			Timestamp: time.Date(2018, time.February, 2, 11, 0, 5, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
-			Message:   "(service fargateTest) has reached a steady state.",
+			Message:   "(service TestApp) has reached a steady state.",
 		},
 		{
 			Id:        "8720a9e8-2a5a-4f83-8b01-d9fc740fa6e4",
@@ -277,7 +277,7 @@ func TestDescribeLogs__sourceHerogate__processDeployer(t *testing.T) {
 			Timestamp: time.Date(2018, time.February, 3, 1, 35, 10, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
-			Message:   "(service fargateTest) has reached a steady state.",
+			Message:   "(service TestApp) has reached a steady state.",
 		},
 	}
 
@@ -403,7 +403,7 @@ func mockECS(ctrl *gomock.Controller) *mock.MockECSAPI {
 					{
 						Id:        aws.String("354a98fa-8c77-4dc6-9c43-1ca33f293ea4"),
 						CreatedAt: aws.Time(time.Date(2018, time.February, 3, 1, 35, 10, 0, time.FixedZone("UTC", 0))),
-						Message:   aws.String("(service fargateTest) has reached a steady state."),
+						Message:   aws.String("(service TestApp) has reached a steady state."),
 					},
 					{
 						Id:        aws.String("5bd5b863-72e8-4f51-a255-33c7c0721345"),
@@ -418,7 +418,7 @@ func mockECS(ctrl *gomock.Controller) *mock.MockECSAPI {
 					{
 						Id:        aws.String("a990c8e1-7190-463f-af65-49446c23741c"),
 						CreatedAt: aws.Time(time.Date(2018, time.February, 2, 11, 0, 5, 0, time.FixedZone("UTC", 0))),
-						Message:   aws.String("(service fargateTest) has reached a steady state."),
+						Message:   aws.String("(service TestApp) has reached a steady state."),
 					},
 				},
 			},

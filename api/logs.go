@@ -53,7 +53,7 @@ func (c *Client) DescribeLogs(appName string, options *DescribeLogsOptions) []*l
 }
 
 func (c *Client) describeBuilderLogs(appName string) []*log.Log {
-	listBuildsForProjectResponse, err := c.CodeBuild.ListBuildsForProject(&codebuild.ListBuildsForProjectInput{
+	listBuildsForProjectResponse, err := c.codeBuild.ListBuildsForProject(&codebuild.ListBuildsForProjectInput{
 		ProjectName: aws.String(appName),
 	})
 	if err != nil {
@@ -66,7 +66,7 @@ func (c *Client) describeBuilderLogs(appName string) []*log.Log {
 	}
 
 	buildID := listBuildsForProjectResponse.Ids[0]
-	batchGetBuildsResponse, err := c.CodeBuild.BatchGetBuilds(&codebuild.BatchGetBuildsInput{
+	batchGetBuildsResponse, err := c.codeBuild.BatchGetBuilds(&codebuild.BatchGetBuildsInput{
 		Ids: []*string{buildID},
 	})
 	if err != nil {
@@ -80,7 +80,7 @@ func (c *Client) describeBuilderLogs(appName string) []*log.Log {
 
 	group := batchGetBuildsResponse.Builds[0].Logs.GroupName
 	stream := batchGetBuildsResponse.Builds[0].Logs.StreamName
-	getLogEventsResponse, err := c.CloudWatchLogs.GetLogEvents(&cloudwatchlogs.GetLogEventsInput{
+	getLogEventsResponse, err := c.cloudWatchLogs.GetLogEvents(&cloudwatchlogs.GetLogEventsInput{
 		LogGroupName:  group,
 		LogStreamName: stream,
 	})
@@ -106,7 +106,7 @@ func (c *Client) describeBuilderLogs(appName string) []*log.Log {
 }
 
 func (c *Client) describeDeployerLogs(appName string) []*log.Log {
-	resp, err := c.ECS.DescribeServices(&ecs.DescribeServicesInput{
+	resp, err := c.ecs.DescribeServices(&ecs.DescribeServicesInput{
 		Cluster:  aws.String(appName),
 		Services: []*string{aws.String(appName)},
 	})

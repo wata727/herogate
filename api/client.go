@@ -15,10 +15,10 @@ import (
 // Client is the Herogate API client.
 // This is a wrapper of AWS API clients.
 type Client struct {
-	CodePipeline   codepipelineiface.CodePipelineAPI
-	CodeBuild      codebuildiface.CodeBuildAPI
-	CloudWatchLogs cloudwatchlogsiface.CloudWatchLogsAPI
-	ECS            ecsiface.ECSAPI
+	codePipeline   codepipelineiface.CodePipelineAPI
+	codeBuild      codebuildiface.CodeBuildAPI
+	cloudWatchLogs cloudwatchlogsiface.CloudWatchLogsAPI
+	ecs            ecsiface.ECSAPI
 }
 
 // NewClient initializes a new client from AWS config.
@@ -26,9 +26,9 @@ func NewClient() *Client {
 	s := session.New()
 
 	return &Client{
-		CodePipeline:   codepipeline.New(s),
-		CodeBuild:      codebuild.New(s),
-		CloudWatchLogs: cloudwatchlogs.New(s),
-		ECS:            ecs.New(s),
+		codePipeline:   codepipeline.New(s),
+		codeBuild:      codebuild.New(s),
+		cloudWatchLogs: cloudwatchlogs.New(s),
+		ecs:            ecs.New(s),
 	}
 }
