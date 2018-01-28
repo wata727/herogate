@@ -5,10 +5,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
-	"github.com/aws/aws-sdk-go-v2/service/codebuild"
-	"github.com/aws/aws-sdk-go-v2/service/ecs"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/codebuild"
+	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/sirupsen/logrus"
 	"github.com/wata727/herogate/log"
 )
@@ -29,7 +29,7 @@ func (c *Client) DescribeLogs(appName string, options *DescribeLogsOptions) []*l
 		return []*log.Log{}
 	}
 
-	var logs []*log.Log
+	var logs []*log.Log = []*log.Log{}
 	switch options.Source {
 	case "":
 		fallthrough
@@ -53,44 +53,37 @@ func (c *Client) DescribeLogs(appName string, options *DescribeLogsOptions) []*l
 }
 
 func (c *Client) describeBuilderLogs(appName string) []*log.Log {
-	listBuildsForProjectRequest := c.CodeBuild.ListBuildsForProjectRequest(&codebuild.ListBuildsForProjectInput{
+	listBuildsForProjectResponse, err := c.CodeBuild.ListBuildsForProject(&codebuild.ListBuildsForProjectInput{
 		ProjectName: aws.String(appName),
 	})
-
-	listBuildsForProjectResponse, err := listBuildsForProjectRequest.Send()
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"ProjectName": appName,
 		}).Fatal("Failed to get the project: " + err.Error())
 	}
-
 	if len(listBuildsForProjectResponse.Ids) == 0 {
 		return []*log.Log{}
 	}
-	buildID := listBuildsForProjectResponse.Ids[0]
-	batchGetBuildsRequest := c.CodeBuild.BatchGetBuildsRequest(&codebuild.BatchGetBuildsInput{
-		Ids: []string{buildID},
-	})
 
-	batchGetBuildsResponse, err := batchGetBuildsRequest.Send()
+	buildID := listBuildsForProjectResponse.Ids[0]
+	batchGetBuildsResponse, err := c.CodeBuild.BatchGetBuilds(&codebuild.BatchGetBuildsInput{
+		Ids: []*string{buildID},
+	})
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"Build ID": buildID,
 		}).Fatal("Failed to get the build: " + err.Error())
 	}
-
 	if len(batchGetBuildsResponse.Builds) == 0 {
 		return []*log.Log{}
 	}
+
 	group := batchGetBuildsResponse.Builds[0].Logs.GroupName
 	stream := batchGetBuildsResponse.Builds[0].Logs.StreamName
-
-	getLogEventsRequest := c.CloudWatchLogs.GetLogEventsRequest(&cloudwatchlogs.GetLogEventsInput{
+	getLogEventsResponse, err := c.CloudWatchLogs.GetLogEvents(&cloudwatchlogs.GetLogEventsInput{
 		LogGroupName:  group,
 		LogStreamName: stream,
 	})
-
-	getLogEventsResponse, err := getLogEventsRequest.Send()
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"LogGroupName":  group,
@@ -98,10 +91,10 @@ func (c *Client) describeBuilderLogs(appName string) []*log.Log {
 		}).Fatal("Failed to get the build logs: " + err.Error())
 	}
 
-	var logs []*log.Log
+	var logs []*log.Log = []*log.Log{}
 	for _, event := range getLogEventsResponse.Events {
 		logs = append(logs, &log.Log{
-			Id:        fmt.Sprintf("%s-%d-%s", buildID, aws.Int64Value(event.Timestamp), aws.StringValue(event.Message)),
+			Id:        fmt.Sprintf("%s-%d-%s", aws.StringValue(buildID), aws.Int64Value(event.Timestamp), aws.StringValue(event.Message)),
 			Timestamp: aws.MillisecondsTimeValue(event.Timestamp).UTC(),
 			Source:    log.HEROGATE_SOURCE,
 			Process:   log.BUIDLER_PROCESS,
@@ -113,23 +106,20 @@ func (c *Client) describeBuilderLogs(appName string) []*log.Log {
 }
 
 func (c *Client) describeDeployerLogs(appName string) []*log.Log {
-	req := c.ECS.DescribeServicesRequest(&ecs.DescribeServicesInput{
+	resp, err := c.ECS.DescribeServices(&ecs.DescribeServicesInput{
 		Cluster:  aws.String(appName),
-		Services: []string{appName},
+		Services: []*string{aws.String(appName)},
 	})
-
-	resp, err := req.Send()
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"appName": appName,
 		}).Fatal("Failed to get the ECS service: " + err.Error())
 	}
-
 	if len(resp.Services) == 0 {
 		return []*log.Log{}
 	}
 
-	var logs []*log.Log
+	var logs []*log.Log = []*log.Log{}
 	for _, event := range resp.Services[0].Events {
 		logs = append(logs, &log.Log{
 			Id:        aws.StringValue(event.Id),

@@ -1,16 +1,15 @@
 package api
 
 import (
-	"github.com/aws/aws-sdk-go-v2/aws/external"
-	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
-	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/cloudwatchlogsiface"
-	"github.com/aws/aws-sdk-go-v2/service/codebuild"
-	"github.com/aws/aws-sdk-go-v2/service/codebuild/codebuildiface"
-	"github.com/aws/aws-sdk-go-v2/service/codepipeline"
-	"github.com/aws/aws-sdk-go-v2/service/codepipeline/codepipelineiface"
-	"github.com/aws/aws-sdk-go-v2/service/ecs"
-	"github.com/aws/aws-sdk-go-v2/service/ecs/ecsiface"
-	log "github.com/sirupsen/logrus"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
+	"github.com/aws/aws-sdk-go/service/codebuild"
+	"github.com/aws/aws-sdk-go/service/codebuild/codebuildiface"
+	"github.com/aws/aws-sdk-go/service/codepipeline"
+	"github.com/aws/aws-sdk-go/service/codepipeline/codepipelineiface"
+	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
 )
 
 // Client is the Herogate API client.
@@ -24,15 +23,12 @@ type Client struct {
 
 // NewClient initializes a new client from AWS config.
 func NewClient() *Client {
-	cfg, err := external.LoadDefaultAWSConfig()
-	if err != nil {
-		log.Fatal("Unable to load SDK config: " + err.Error())
-	}
+	s := session.New()
 
 	return &Client{
-		CodePipeline:   codepipeline.New(cfg),
-		CodeBuild:      codebuild.New(cfg),
-		CloudWatchLogs: cloudwatchlogs.New(cfg),
-		ECS:            ecs.New(cfg),
+		CodePipeline:   codepipeline.New(s),
+		CodeBuild:      codebuild.New(s),
+		CloudWatchLogs: cloudwatchlogs.New(s),
+		ECS:            ecs.New(s),
 	}
 }
