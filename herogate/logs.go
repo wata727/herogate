@@ -10,7 +10,7 @@ import (
 	"github.com/wata727/herogate/log"
 )
 
-type logsService struct {
+type logsContext struct {
 	name   string
 	app    *cli.App
 	client iface.ClientInterface
@@ -20,8 +20,9 @@ type logsService struct {
 	tail   bool
 }
 
+// Logs retrieves logs from builder, deployer, and app containers.
 func Logs(c *cli.Context) {
-	processLogs(&logsService{
+	processLogs(&logsContext{
 		name:   "fargateTest",
 		app:    c.App,
 		client: api.NewClient(),
@@ -32,31 +33,31 @@ func Logs(c *cli.Context) {
 	})
 }
 
-func processLogs(svc *logsService) {
+func processLogs(ctx *logsContext) {
 	var lastEventLog *log.Log
-	eventLogs := fetchNewLogs(svc, lastEventLog)
-	if len(eventLogs)-svc.num > 0 {
-		eventLogs = eventLogs[len(eventLogs)-svc.num:]
+	eventLogs := fetchNewLogs(ctx, lastEventLog)
+	if len(eventLogs)-ctx.num > 0 {
+		eventLogs = eventLogs[len(eventLogs)-ctx.num:]
 	}
 
 	for _, eventLog := range eventLogs {
 		lastEventLog = eventLog
-		fmt.Fprintln(svc.app.Writer, eventLog.Format())
+		fmt.Fprintln(ctx.app.Writer, eventLog.Format())
 	}
 
-	for svc.tail {
+	for ctx.tail {
 		time.Sleep(5 * time.Second)
-		for _, eventLog := range fetchNewLogs(svc, lastEventLog) {
+		for _, eventLog := range fetchNewLogs(ctx, lastEventLog) {
 			lastEventLog = eventLog
-			fmt.Fprintln(svc.app.Writer, eventLog.Format())
+			fmt.Fprintln(ctx.app.Writer, eventLog.Format())
 		}
 	}
 }
 
-func fetchNewLogs(svc *logsService, lastEventLog *log.Log) []*log.Log {
-	eventLogs := svc.client.DescribeLogs(svc.name, &api.DescribeLogsOptions{
-		Process: svc.ps,
-		Source:  svc.source,
+func fetchNewLogs(ctx *logsContext, lastEventLog *log.Log) []*log.Log {
+	eventLogs := ctx.client.DescribeLogs(ctx.name, &api.DescribeLogsOptions{
+		Process: ctx.ps,
+		Source:  ctx.source,
 	})
 	if lastEventLog == nil {
 		return eventLogs
