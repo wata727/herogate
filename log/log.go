@@ -8,7 +8,7 @@ import (
 )
 
 type Log struct {
-	Id        string
+	ID        string
 	Timestamp time.Time
 	Source    string
 	Process   string
@@ -16,12 +16,12 @@ type Log struct {
 }
 
 const (
-	HEROGATE_SOURCE = "herogate"
+	HerogateSource = "herogate"
 )
 
 const (
-	BUIDLER_PROCESS  = "builder"
-	DEPLOYER_PROCESS = "deployer"
+	BuilderProcess  = "builder"
+	DeployerProcess = "deployer"
 )
 
 func (l *Log) Format() string {

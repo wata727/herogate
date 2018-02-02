@@ -29,21 +29,21 @@ func TestProcessLogs(t *testing.T) {
 		Source:  "source",
 	}).Return([]*log.Log{
 		{
-			Id:        "foo",
+			ID:        "foo",
 			Timestamp: time.Date(2018, time.February, 2, 11, 0, 5, 0, time.FixedZone("UTC", 0)),
 			Source:    "source",
 			Process:   "ps",
 			Message:   "foo message",
 		},
 		{
-			Id:        "bar",
+			ID:        "bar",
 			Timestamp: time.Date(2018, time.February, 2, 11, 0, 9, 0, time.FixedZone("UTC", 0)),
 			Source:    "source",
 			Process:   "ps",
 			Message:   "bar message",
 		},
 		{
-			Id:        "baz",
+			ID:        "baz",
 			Timestamp: time.Date(2018, time.February, 2, 11, 0, 29, 0, time.FixedZone("UTC", 0)),
 			Source:    "source",
 			Process:   "ps",
@@ -84,21 +84,21 @@ func TestFetchNewLogs(t *testing.T) {
 		Source:  "source",
 	}).Return([]*log.Log{
 		{
-			Id:        "foo",
+			ID:        "foo",
 			Timestamp: time.Date(2018, time.February, 2, 11, 0, 5, 0, time.FixedZone("UTC", 0)),
 			Source:    "source",
 			Process:   "ps",
 			Message:   "foo message",
 		},
 		{
-			Id:        "bar",
+			ID:        "bar",
 			Timestamp: time.Date(2018, time.February, 2, 11, 0, 9, 0, time.FixedZone("UTC", 0)),
 			Source:    "source",
 			Process:   "ps",
 			Message:   "bar message",
 		},
 		{
-			Id:        "baz",
+			ID:        "baz",
 			Timestamp: time.Date(2018, time.February, 2, 11, 0, 29, 0, time.FixedZone("UTC", 0)),
 			Source:    "source",
 			Process:   "ps",
@@ -115,7 +115,7 @@ func TestFetchNewLogs(t *testing.T) {
 		source: "source",
 		tail:   false,
 	}, &log.Log{
-		Id:        "bar",
+		ID:        "bar",
 		Timestamp: time.Date(2018, time.February, 2, 11, 0, 9, 0, time.FixedZone("UTC", 0)),
 		Source:    "source",
 		Process:   "ps",
@@ -124,7 +124,7 @@ func TestFetchNewLogs(t *testing.T) {
 
 	expected := []*log.Log{
 		{
-			Id:        "baz",
+			ID:        "baz",
 			Timestamp: time.Date(2018, time.February, 2, 11, 0, 29, 0, time.FixedZone("UTC", 0)),
 			Source:    "source",
 			Process:   "ps",

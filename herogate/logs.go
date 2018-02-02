@@ -64,7 +64,7 @@ func fetchNewLogs(ctx *logsContext, lastEventLog *log.Log) []*log.Log {
 	}
 
 	for i := len(eventLogs) - 1; i >= 0; i-- {
-		if lastEventLog.Id == eventLogs[i].Id {
+		if lastEventLog.ID == eventLogs[i].ID {
 			return eventLogs[i+1:]
 		}
 	}

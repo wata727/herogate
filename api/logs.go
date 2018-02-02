@@ -33,14 +33,14 @@ func (c *Client) DescribeLogs(appName string, options *DescribeLogsOptions) []*l
 	switch options.Source {
 	case "":
 		fallthrough
-	case log.HEROGATE_SOURCE:
+	case log.HerogateSource:
 		switch options.Process {
 		case "":
 			logs = append(logs, c.describeBuilderLogs(appName)...)
 			logs = append(logs, c.describeDeployerLogs(appName)...)
-		case log.BUIDLER_PROCESS:
+		case log.BuilderProcess:
 			logs = append(logs, c.describeBuilderLogs(appName)...)
-		case log.DEPLOYER_PROCESS:
+		case log.DeployerProcess:
 			logs = append(logs, c.describeDeployerLogs(appName)...)
 		}
 	}
@@ -94,10 +94,10 @@ func (c *Client) describeBuilderLogs(appName string) []*log.Log {
 	var logs []*log.Log = []*log.Log{}
 	for _, event := range getLogEventsResponse.Events {
 		logs = append(logs, &log.Log{
-			Id:        fmt.Sprintf("%s-%d-%s", aws.StringValue(buildID), aws.Int64Value(event.Timestamp), aws.StringValue(event.Message)),
+			ID:        fmt.Sprintf("%s-%d-%s", aws.StringValue(buildID), aws.Int64Value(event.Timestamp), aws.StringValue(event.Message)),
 			Timestamp: aws.MillisecondsTimeValue(event.Timestamp).UTC(),
-			Source:    log.HEROGATE_SOURCE,
-			Process:   log.BUIDLER_PROCESS,
+			Source:    log.HerogateSource,
+			Process:   log.BuilderProcess,
 			Message:   strings.TrimRight(aws.StringValue(event.Message), "\n"),
 		})
 	}
@@ -122,10 +122,10 @@ func (c *Client) describeDeployerLogs(appName string) []*log.Log {
 	var logs []*log.Log = []*log.Log{}
 	for _, event := range resp.Services[0].Events {
 		logs = append(logs, &log.Log{
-			Id:        aws.StringValue(event.Id),
+			ID:        aws.StringValue(event.Id),
 			Timestamp: aws.TimeValue(event.CreatedAt),
-			Source:    log.HEROGATE_SOURCE,
-			Process:   log.DEPLOYER_PROCESS,
+			Source:    log.HerogateSource,
+			Process:   log.DeployerProcess,
 			Message:   aws.StringValue(event.Message),
 		})
 	}
