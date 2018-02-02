@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
+	"github.com/wata727/herogate/api/options"
 	"github.com/wata727/herogate/log"
 	"github.com/wata727/herogate/mock"
 )
@@ -25,42 +26,42 @@ func TestDescribeLogs__noConfig(t *testing.T) {
 
 	expected := []*log.Log{
 		{
-			Id:        "a990c8e1-7190-463f-af65-49446c23741c",
+			ID:        "a990c8e1-7190-463f-af65-49446c23741c",
 			Timestamp: time.Date(2018, time.February, 2, 11, 0, 5, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
 			Message:   "(service TestApp) has reached a steady state.",
 		},
 		{
-			Id:        "TestApp:d6940abd-ba2c-4e36-b124-1c3d81f9ee26-1517621401000-[Container] 2018/01/26 18:20:01 Waiting for agent ping\n",
+			ID:        "TestApp:d6940abd-ba2c-4e36-b124-1c3d81f9ee26-1517621401000-[Container] 2018/01/26 18:20:01 Waiting for agent ping\n",
 			Timestamp: time.Date(2018, time.February, 3, 1, 30, 1, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "builder",
 			Message:   "[Container] 2018/01/26 18:20:01 Waiting for agent ping",
 		},
 		{
-			Id:        "TestApp:d6940abd-ba2c-4e36-b124-1c3d81f9ee26-1517621482000-[Container] 2018/01/26 18:20:04 Phase context status code:  Message: \n",
+			ID:        "TestApp:d6940abd-ba2c-4e36-b124-1c3d81f9ee26-1517621482000-[Container] 2018/01/26 18:20:04 Phase context status code:  Message: \n",
 			Timestamp: time.Date(2018, time.February, 3, 1, 31, 22, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "builder",
 			Message:   "[Container] 2018/01/26 18:20:04 Phase context status code:  Message: ",
 		},
 		{
-			Id:        "8720a9e8-2a5a-4f83-8b01-d9fc740fa6e4",
+			ID:        "8720a9e8-2a5a-4f83-8b01-d9fc740fa6e4",
 			Timestamp: time.Date(2018, time.February, 3, 1, 32, 22, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
 			Message:   "(service TestApp) has started 1 running tasks: (task 2cf5252f-4b9e-48c3-ba73-76c1aa42e323)",
 		},
 		{
-			Id:        "5bd5b863-72e8-4f51-a255-33c7c0721345",
+			ID:        "5bd5b863-72e8-4f51-a255-33c7c0721345",
 			Timestamp: time.Date(2018, time.February, 3, 1, 34, 56, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
 			Message:   "(service TestApp) has stopped 1 running tasks: (task 2cf5252f-4b9e-48c3-ba73-76c1aa42e323)",
 		},
 		{
-			Id:        "354a98fa-8c77-4dc6-9c43-1ca33f293ea4",
+			ID:        "354a98fa-8c77-4dc6-9c43-1ca33f293ea4",
 			Timestamp: time.Date(2018, time.February, 3, 1, 35, 10, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
@@ -68,7 +69,7 @@ func TestDescribeLogs__noConfig(t *testing.T) {
 		},
 	}
 
-	logs := client.DescribeLogs("TestApp", &DescribeLogsOptions{})
+	logs := client.DescribeLogs("TestApp", &options.DescribeLogs{})
 	if !cmp.Equal(expected, logs) {
 		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, logs))
 	}
@@ -85,42 +86,42 @@ func TestDescribeLogs__sourceHerogate(t *testing.T) {
 
 	expected := []*log.Log{
 		{
-			Id:        "a990c8e1-7190-463f-af65-49446c23741c",
+			ID:        "a990c8e1-7190-463f-af65-49446c23741c",
 			Timestamp: time.Date(2018, time.February, 2, 11, 0, 5, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
 			Message:   "(service TestApp) has reached a steady state.",
 		},
 		{
-			Id:        "TestApp:d6940abd-ba2c-4e36-b124-1c3d81f9ee26-1517621401000-[Container] 2018/01/26 18:20:01 Waiting for agent ping\n",
+			ID:        "TestApp:d6940abd-ba2c-4e36-b124-1c3d81f9ee26-1517621401000-[Container] 2018/01/26 18:20:01 Waiting for agent ping\n",
 			Timestamp: time.Date(2018, time.February, 3, 1, 30, 1, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "builder",
 			Message:   "[Container] 2018/01/26 18:20:01 Waiting for agent ping",
 		},
 		{
-			Id:        "TestApp:d6940abd-ba2c-4e36-b124-1c3d81f9ee26-1517621482000-[Container] 2018/01/26 18:20:04 Phase context status code:  Message: \n",
+			ID:        "TestApp:d6940abd-ba2c-4e36-b124-1c3d81f9ee26-1517621482000-[Container] 2018/01/26 18:20:04 Phase context status code:  Message: \n",
 			Timestamp: time.Date(2018, time.February, 3, 1, 31, 22, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "builder",
 			Message:   "[Container] 2018/01/26 18:20:04 Phase context status code:  Message: ",
 		},
 		{
-			Id:        "8720a9e8-2a5a-4f83-8b01-d9fc740fa6e4",
+			ID:        "8720a9e8-2a5a-4f83-8b01-d9fc740fa6e4",
 			Timestamp: time.Date(2018, time.February, 3, 1, 32, 22, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
 			Message:   "(service TestApp) has started 1 running tasks: (task 2cf5252f-4b9e-48c3-ba73-76c1aa42e323)",
 		},
 		{
-			Id:        "5bd5b863-72e8-4f51-a255-33c7c0721345",
+			ID:        "5bd5b863-72e8-4f51-a255-33c7c0721345",
 			Timestamp: time.Date(2018, time.February, 3, 1, 34, 56, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
 			Message:   "(service TestApp) has stopped 1 running tasks: (task 2cf5252f-4b9e-48c3-ba73-76c1aa42e323)",
 		},
 		{
-			Id:        "354a98fa-8c77-4dc6-9c43-1ca33f293ea4",
+			ID:        "354a98fa-8c77-4dc6-9c43-1ca33f293ea4",
 			Timestamp: time.Date(2018, time.February, 3, 1, 35, 10, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
@@ -128,7 +129,7 @@ func TestDescribeLogs__sourceHerogate(t *testing.T) {
 		},
 	}
 
-	logs := client.DescribeLogs("TestApp", &DescribeLogsOptions{Source: "herogate"})
+	logs := client.DescribeLogs("TestApp", &options.DescribeLogs{Source: "herogate"})
 	if !cmp.Equal(expected, logs) {
 		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, logs))
 	}
@@ -144,14 +145,14 @@ func TestDescribeLogs__processBuilder(t *testing.T) {
 
 	expected := []*log.Log{
 		{
-			Id:        "TestApp:d6940abd-ba2c-4e36-b124-1c3d81f9ee26-1517621401000-[Container] 2018/01/26 18:20:01 Waiting for agent ping\n",
+			ID:        "TestApp:d6940abd-ba2c-4e36-b124-1c3d81f9ee26-1517621401000-[Container] 2018/01/26 18:20:01 Waiting for agent ping\n",
 			Timestamp: time.Date(2018, time.February, 3, 1, 30, 1, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "builder",
 			Message:   "[Container] 2018/01/26 18:20:01 Waiting for agent ping",
 		},
 		{
-			Id:        "TestApp:d6940abd-ba2c-4e36-b124-1c3d81f9ee26-1517621482000-[Container] 2018/01/26 18:20:04 Phase context status code:  Message: \n",
+			ID:        "TestApp:d6940abd-ba2c-4e36-b124-1c3d81f9ee26-1517621482000-[Container] 2018/01/26 18:20:04 Phase context status code:  Message: \n",
 			Timestamp: time.Date(2018, time.February, 3, 1, 31, 22, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "builder",
@@ -159,7 +160,7 @@ func TestDescribeLogs__processBuilder(t *testing.T) {
 		},
 	}
 
-	logs := client.DescribeLogs("TestApp", &DescribeLogsOptions{Process: "builder"})
+	logs := client.DescribeLogs("TestApp", &options.DescribeLogs{Process: "builder"})
 	if !cmp.Equal(expected, logs) {
 		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, logs))
 	}
@@ -174,28 +175,28 @@ func TestDescribeLogs__processDeployer(t *testing.T) {
 
 	expected := []*log.Log{
 		{
-			Id:        "a990c8e1-7190-463f-af65-49446c23741c",
+			ID:        "a990c8e1-7190-463f-af65-49446c23741c",
 			Timestamp: time.Date(2018, time.February, 2, 11, 0, 5, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
 			Message:   "(service TestApp) has reached a steady state.",
 		},
 		{
-			Id:        "8720a9e8-2a5a-4f83-8b01-d9fc740fa6e4",
+			ID:        "8720a9e8-2a5a-4f83-8b01-d9fc740fa6e4",
 			Timestamp: time.Date(2018, time.February, 3, 1, 32, 22, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
 			Message:   "(service TestApp) has started 1 running tasks: (task 2cf5252f-4b9e-48c3-ba73-76c1aa42e323)",
 		},
 		{
-			Id:        "5bd5b863-72e8-4f51-a255-33c7c0721345",
+			ID:        "5bd5b863-72e8-4f51-a255-33c7c0721345",
 			Timestamp: time.Date(2018, time.February, 3, 1, 34, 56, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
 			Message:   "(service TestApp) has stopped 1 running tasks: (task 2cf5252f-4b9e-48c3-ba73-76c1aa42e323)",
 		},
 		{
-			Id:        "354a98fa-8c77-4dc6-9c43-1ca33f293ea4",
+			ID:        "354a98fa-8c77-4dc6-9c43-1ca33f293ea4",
 			Timestamp: time.Date(2018, time.February, 3, 1, 35, 10, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
@@ -203,7 +204,7 @@ func TestDescribeLogs__processDeployer(t *testing.T) {
 		},
 	}
 
-	logs := client.DescribeLogs("TestApp", &DescribeLogsOptions{Process: "deployer"})
+	logs := client.DescribeLogs("TestApp", &options.DescribeLogs{Process: "deployer"})
 	if !cmp.Equal(expected, logs) {
 		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, logs))
 	}
@@ -219,14 +220,14 @@ func TestDescribeLogs__sourceHerogate__processBuilder(t *testing.T) {
 
 	expected := []*log.Log{
 		{
-			Id:        "TestApp:d6940abd-ba2c-4e36-b124-1c3d81f9ee26-1517621401000-[Container] 2018/01/26 18:20:01 Waiting for agent ping\n",
+			ID:        "TestApp:d6940abd-ba2c-4e36-b124-1c3d81f9ee26-1517621401000-[Container] 2018/01/26 18:20:01 Waiting for agent ping\n",
 			Timestamp: time.Date(2018, time.February, 3, 1, 30, 1, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "builder",
 			Message:   "[Container] 2018/01/26 18:20:01 Waiting for agent ping",
 		},
 		{
-			Id:        "TestApp:d6940abd-ba2c-4e36-b124-1c3d81f9ee26-1517621482000-[Container] 2018/01/26 18:20:04 Phase context status code:  Message: \n",
+			ID:        "TestApp:d6940abd-ba2c-4e36-b124-1c3d81f9ee26-1517621482000-[Container] 2018/01/26 18:20:04 Phase context status code:  Message: \n",
 			Timestamp: time.Date(2018, time.February, 3, 1, 31, 22, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "builder",
@@ -234,7 +235,7 @@ func TestDescribeLogs__sourceHerogate__processBuilder(t *testing.T) {
 		},
 	}
 
-	logs := client.DescribeLogs("TestApp", &DescribeLogsOptions{
+	logs := client.DescribeLogs("TestApp", &options.DescribeLogs{
 		Source:  "herogate",
 		Process: "builder",
 	})
@@ -252,28 +253,28 @@ func TestDescribeLogs__sourceHerogate__processDeployer(t *testing.T) {
 
 	expected := []*log.Log{
 		{
-			Id:        "a990c8e1-7190-463f-af65-49446c23741c",
+			ID:        "a990c8e1-7190-463f-af65-49446c23741c",
 			Timestamp: time.Date(2018, time.February, 2, 11, 0, 5, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
 			Message:   "(service TestApp) has reached a steady state.",
 		},
 		{
-			Id:        "8720a9e8-2a5a-4f83-8b01-d9fc740fa6e4",
+			ID:        "8720a9e8-2a5a-4f83-8b01-d9fc740fa6e4",
 			Timestamp: time.Date(2018, time.February, 3, 1, 32, 22, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
 			Message:   "(service TestApp) has started 1 running tasks: (task 2cf5252f-4b9e-48c3-ba73-76c1aa42e323)",
 		},
 		{
-			Id:        "5bd5b863-72e8-4f51-a255-33c7c0721345",
+			ID:        "5bd5b863-72e8-4f51-a255-33c7c0721345",
 			Timestamp: time.Date(2018, time.February, 3, 1, 34, 56, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
 			Message:   "(service TestApp) has stopped 1 running tasks: (task 2cf5252f-4b9e-48c3-ba73-76c1aa42e323)",
 		},
 		{
-			Id:        "354a98fa-8c77-4dc6-9c43-1ca33f293ea4",
+			ID:        "354a98fa-8c77-4dc6-9c43-1ca33f293ea4",
 			Timestamp: time.Date(2018, time.February, 3, 1, 35, 10, 0, time.FixedZone("UTC", 0)),
 			Source:    "herogate",
 			Process:   "deployer",
@@ -281,7 +282,7 @@ func TestDescribeLogs__sourceHerogate__processDeployer(t *testing.T) {
 		},
 	}
 
-	logs := client.DescribeLogs("TestApp", &DescribeLogsOptions{
+	logs := client.DescribeLogs("TestApp", &options.DescribeLogs{
 		Source:  "herogate",
 		Process: "deployer",
 	})
@@ -298,7 +299,7 @@ func TestDescribeLogs__sourceInvalid(t *testing.T) {
 
 	expected := []*log.Log{}
 
-	logs := client.DescribeLogs("TestApp", &DescribeLogsOptions{Source: "invalid"})
+	logs := client.DescribeLogs("TestApp", &options.DescribeLogs{Source: "invalid"})
 	if !cmp.Equal(expected, logs) {
 		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, logs))
 	}
@@ -312,7 +313,7 @@ func TestDescribeLogs__processInvalid(t *testing.T) {
 
 	expected := []*log.Log{}
 
-	logs := client.DescribeLogs("TestApp", &DescribeLogsOptions{Process: "invalid"})
+	logs := client.DescribeLogs("TestApp", &options.DescribeLogs{Process: "invalid"})
 	if !cmp.Equal(expected, logs) {
 		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, logs))
 	}
@@ -326,7 +327,7 @@ func TestDescribeLogs__sourceHerogate__processInvalid(t *testing.T) {
 
 	expected := []*log.Log{}
 
-	logs := client.DescribeLogs("TestApp", &DescribeLogsOptions{
+	logs := client.DescribeLogs("TestApp", &options.DescribeLogs{
 		Source:  "herogate",
 		Process: "invalid",
 	})

@@ -10,7 +10,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/urfave/cli"
-	"github.com/wata727/herogate/api"
+	"github.com/wata727/herogate/api/options"
 	"github.com/wata727/herogate/log"
 	"github.com/wata727/herogate/mock"
 )
@@ -24,7 +24,7 @@ func TestProcessLogs(t *testing.T) {
 	app.Writer = writer
 
 	client := mock.NewMockClientInterface(ctrl)
-	client.EXPECT().DescribeLogs("fargateTest", &api.DescribeLogsOptions{
+	client.EXPECT().DescribeLogs("fargateTest", &options.DescribeLogs{
 		Process: "ps",
 		Source:  "source",
 	}).Return([]*log.Log{
@@ -79,7 +79,7 @@ func TestFetchNewLogs(t *testing.T) {
 	defer ctrl.Finish()
 
 	client := mock.NewMockClientInterface(ctrl)
-	client.EXPECT().DescribeLogs("fargateTest", &api.DescribeLogsOptions{
+	client.EXPECT().DescribeLogs("fargateTest", &options.DescribeLogs{
 		Process: "ps",
 		Source:  "source",
 	}).Return([]*log.Log{

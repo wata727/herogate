@@ -5,7 +5,7 @@ package mock
 
 import (
 	gomock "github.com/golang/mock/gomock"
-	api "github.com/wata727/herogate/api"
+	options "github.com/wata727/herogate/api/options"
 	log "github.com/wata727/herogate/log"
 )
 
@@ -30,7 +30,7 @@ func (_m *MockClientInterface) EXPECT() *_MockClientInterfaceRecorder {
 	return _m.recorder
 }
 
-func (_m *MockClientInterface) DescribeLogs(appName string, options *api.DescribeLogsOptions) []*log.Log {
+func (_m *MockClientInterface) DescribeLogs(appName string, options *options.DescribeLogs) []*log.Log {
 	ret := _m.ctrl.Call(_m, "DescribeLogs", appName, options)
 	ret0, _ := ret[0].([]*log.Log)
 	return ret0

@@ -10,21 +10,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/codebuild"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/sirupsen/logrus"
+	"github.com/wata727/herogate/api/options"
 	"github.com/wata727/herogate/log"
 )
-
-// DescribeLogsOptions is the options for DescribeLogs API.
-// Process is the name of a process. (e.g. builder, deployer, etc...)
-// Source is the name of a log source. (e.g. app, herogate, etc...)
-type DescribeLogsOptions struct {
-	Process string
-	Source  string
-}
 
 // DescribeLogs returns the Herogate application logs.
 // In this function, it calls CodeBuild API, CloudWatchLogs API, and ECS Service API internally
 // and sorts logs by timestamps.
-func (c *Client) DescribeLogs(appName string, options *DescribeLogsOptions) []*log.Log {
+func (c *Client) DescribeLogs(appName string, options *options.DescribeLogs) []*log.Log {
 	if options == nil {
 		return []*log.Log{}
 	}

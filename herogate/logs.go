@@ -7,6 +7,7 @@ import (
 	"github.com/urfave/cli"
 	"github.com/wata727/herogate/api"
 	"github.com/wata727/herogate/api/iface"
+	"github.com/wata727/herogate/api/options"
 	"github.com/wata727/herogate/log"
 )
 
@@ -55,7 +56,7 @@ func processLogs(ctx *logsContext) {
 }
 
 func fetchNewLogs(ctx *logsContext, lastEventLog *log.Log) []*log.Log {
-	eventLogs := ctx.client.DescribeLogs(ctx.name, &api.DescribeLogsOptions{
+	eventLogs := ctx.client.DescribeLogs(ctx.name, &options.DescribeLogs{
 		Process: ctx.ps,
 		Source:  ctx.source,
 	})
