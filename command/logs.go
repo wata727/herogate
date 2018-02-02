@@ -5,7 +5,7 @@ import (
 	"github.com/wata727/herogate/herogate"
 )
 
-// LogsCommand is command for retrieving herogate logs.
+// LogsCommand is command for retrieving Herogate logs.
 func LogsCommand() cli.Command {
 	return cli.Command{
 		Name:   "logs",
