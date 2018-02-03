@@ -19,7 +19,7 @@ func TestDescribeLogs__noConfig(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	client := NewClient()
+	client := NewClient(&ClientOption{})
 	client.codeBuild = mockCodeBuild(ctrl)
 	client.cloudWatchLogs = mockCloudWatchLogs(ctrl)
 	client.ecs = mockECS(ctrl)
@@ -79,7 +79,7 @@ func TestDescribeLogs__sourceHerogate(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	client := NewClient()
+	client := NewClient(&ClientOption{})
 	client.codeBuild = mockCodeBuild(ctrl)
 	client.cloudWatchLogs = mockCloudWatchLogs(ctrl)
 	client.ecs = mockECS(ctrl)
@@ -139,7 +139,7 @@ func TestDescribeLogs__processBuilder(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	client := NewClient()
+	client := NewClient(&ClientOption{})
 	client.codeBuild = mockCodeBuild(ctrl)
 	client.cloudWatchLogs = mockCloudWatchLogs(ctrl)
 
@@ -170,7 +170,7 @@ func TestDescribeLogs__processDeployer(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	client := NewClient()
+	client := NewClient(&ClientOption{})
 	client.ecs = mockECS(ctrl)
 
 	expected := []*log.Log{
@@ -214,7 +214,7 @@ func TestDescribeLogs__sourceHerogate__processBuilder(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	client := NewClient()
+	client := NewClient(&ClientOption{})
 	client.codeBuild = mockCodeBuild(ctrl)
 	client.cloudWatchLogs = mockCloudWatchLogs(ctrl)
 
@@ -248,7 +248,7 @@ func TestDescribeLogs__sourceHerogate__processDeployer(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	client := NewClient()
+	client := NewClient(&ClientOption{})
 	client.ecs = mockECS(ctrl)
 
 	expected := []*log.Log{
@@ -295,7 +295,7 @@ func TestDescribeLogs__sourceInvalid(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	client := NewClient()
+	client := NewClient(&ClientOption{})
 
 	expected := []*log.Log{}
 
@@ -309,7 +309,7 @@ func TestDescribeLogs__processInvalid(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	client := NewClient()
+	client := NewClient(&ClientOption{})
 
 	expected := []*log.Log{}
 
@@ -323,7 +323,7 @@ func TestDescribeLogs__sourceHerogate__processInvalid(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	client := NewClient()
+	client := NewClient(&ClientOption{})
 
 	expected := []*log.Log{}
 

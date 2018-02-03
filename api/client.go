@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
@@ -21,9 +22,18 @@ type Client struct {
 	ecs            ecsiface.ECSAPI
 }
 
+// ClientOption is options for Herogate API Client.
+// Regions can specify regions used in AWS.
+type ClientOption struct {
+	Region string
+}
+
 // NewClient initializes a new client from AWS config.
-func NewClient() *Client {
+func NewClient(option *ClientOption) *Client {
 	s := session.New()
+	if option.Region != "" {
+		s = session.New(&aws.Config{Region: aws.String(option.Region)})
+	}
 
 	return &Client{
 		codePipeline:   codepipeline.New(s),

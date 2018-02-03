@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"github.com/wata727/herogate/api"
 	"github.com/wata727/herogate/api/iface"
@@ -23,10 +24,16 @@ type logsContext struct {
 
 // Logs retrieves logs from builder, deployer, and app containers.
 func Logs(c *cli.Context) {
+	region, name := detectAppFromRepo()
+	if c.String("app") != "" {
+		logrus.Debug("Override application name: " + c.String("app"))
+		name = c.String("app")
+	}
+
 	processLogs(&logsContext{
-		name:   c.String("app"),
+		name:   name,
 		app:    c.App,
-		client: api.NewClient(),
+		client: api.NewClient(&api.ClientOption{Region: region}),
 		num:    c.Int("num"),
 		ps:     c.String("ps"),
 		source: c.String("source"),
