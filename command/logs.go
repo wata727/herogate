@@ -10,7 +10,7 @@ func LogsCommand() cli.Command {
 	return cli.Command{
 		Name:   "logs",
 		Usage:  "display recent log output",
-		Flags:  logsFlags(),
+		Flags:  append(sharedFlags(), logsFlags()...),
 		Action: herogate.Logs,
 	}
 }

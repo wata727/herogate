@@ -24,7 +24,7 @@ type logsContext struct {
 // Logs retrieves logs from builder, deployer, and app containers.
 func Logs(c *cli.Context) {
 	processLogs(&logsContext{
-		name:   "fargateTest",
+		name:   c.String("app"),
 		app:    c.App,
 		client: api.NewClient(),
 		num:    c.Int("num"),
