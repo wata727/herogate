@@ -1,0 +1,327 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Herogate platform template
+Parameters:
+  BuildSpec:
+    Type: String
+
+Resources:
+  HerogatePipeline:
+    Type: "AWS::CodePipeline::Pipeline"
+    Properties:
+      Name: !Ref AWS::StackName
+      ArtifactStore:
+        Type: S3
+        Location: !Ref HerogatePipelineArtifactStore
+      RestartExecutionOnUpdate: false
+      RoleArn: !GetAtt HerogatePipelineRole.Arn
+      Stages:
+        - Name: Repository
+          Actions:
+            - Name: ChangeSource
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeCommit
+                Version: 1
+              Configuration:
+                RepositoryName: !GetAtt HerogateRepository.Name
+                BranchName: master
+                PollForSourceChanges: false
+              OutputArtifacts:
+                - Name: HerogateSource
+        - Name: Builder
+          Actions:
+            - Name: Build
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              Configuration:
+                ProjectName: !Ref HerogateBuilder
+              InputArtifacts:
+                - Name: HerogateSource
+              OutputArtifacts:
+                - Name: HerogateBuild
+        - Name: Deployer
+          Actions:
+            - Name: Deploy
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: ECS
+                Version: 1
+              Configuration:
+                ClusterName: !Ref HerogateApplicationCluster
+                ServiceName: !GetAtt HerogateApplicationService.Name
+              InputArtifacts:
+                - Name: HerogateBuild
+  HerogatePipelineArtifactStore:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub "herogate-${AWS::AccountId}-${AWS::Region}-${AWS::StackName}"
+  HerogatePipelineRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub "HerogatePipelineRole-${AWS::StackName}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub "HerogatePipelinePolicy-${AWS::StackName}"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Resource: "*"
+                Action:
+                  - codecommit:CancelUploadArchive
+                  - codecommit:GetBranch
+                  - codecommit:GetCommit
+                  - codecommit:GetUploadArchiveStatus
+                  - codecommit:UploadArchive
+                  - codebuild:BatchGetBuilds
+                  - codebuild:StartBuild
+                  - ec2:*
+                  - elasticloadbalancing:*
+                  - autoscaling:*
+                  - cloudwatch:*
+                  - s3:*
+                  - sns:*
+                  - cloudformation:*
+                  - rds:*
+                  - sqs:*
+                  - ecs:*
+                  - iam:PassRole
+  HerogateRepository:
+    Type: "AWS::CodeCommit::Repository"
+    Properties:
+      RepositoryName: !Ref AWS::StackName
+  HerogateBuilder:
+    Type: "AWS::CodeBuild::Project"
+    Properties:
+      Name: !Ref AWS::StackName
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        PrivilegedMode: true
+        Image: aws/codebuild/docker:17.09.0
+      ServiceRole: !GetAtt HerogateBuilderRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: !Ref BuildSpec
+      Artifacts:
+        Type: CODEPIPELINE
+  HerogateBuilderRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub "HerogateBuilderRole-${AWS::StackName}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub "HerogatePipelinePolicy-${AWS::StackName}"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Resource:
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${AWS::StackName}"
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${AWS::StackName}:*"
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+              - Effect: Allow
+                Resource:
+                  - !Sub "arn:aws:s3:::${HerogatePipelineArtifactStore}*"
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+              - Effect: Allow
+                Resource:
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/CodeBuild/*"
+                Action:
+                  - ssm:GetParameters
+  HerogateApplicationCluster:
+    Type: "AWS::ECS::Cluster"
+    Properties:
+      ClusterName: !Ref AWS::StackName
+  HerogateApplicationService:
+    Type: "AWS::ECS::Service"
+    DependsOn: HerogateLoadBalancerListener
+    Properties:
+      ServiceName: !Ref AWS::StackName
+      Cluster: !Ref HerogateApplicationCluster
+      TaskDefinition: !Ref HerogateApplicationContainer
+      LaunchType: FARGATE
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 50
+      DesiredCount: 1
+      LoadBalancers:
+        - TargetGroupArn: !Ref HerogateLoadBalancerTargetGroup
+          ContainerName: web
+          ContainerPort: 80
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !GetAtt HerogateApplicationServiceSecurityGroup.GroupId
+          Subnets: 
+            - !Ref HerogateNetworkSubnetA
+            - !Ref HerogateNetworkSubnetB
+  HerogateApplicationContainer:
+    Type: "AWS::ECS::TaskDefinition"
+    Properties:
+      Family: !Ref AWS::StackName
+      Cpu: "1024"
+      Memory: "2048"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !GetAtt HerogateApplicationContainerRole.Arn
+      ContainerDefinitions:
+        - Name: web
+          Image: "httpd:2.4"
+          PortMappings:
+            - ContainerPort: 80
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-region: !Ref AWS::Region
+              awslogs-group: !Ref HerogateApplicationContainerLogs
+              awslogs-stream-prefix: web
+  HerogateApplicationContainerRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub "HerogateApplicationContainerRole-${AWS::StackName}"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      AssumeRolePolicyDocument:
+        Version: "2008-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+  HerogateApplicationContainerLogs:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName: !Sub "HerogateApplicationContainerLogs-${AWS::StackName}"
+      RetentionInDays: 14
+  HerogateApplicationServiceSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupName: !Sub "HerogateApplicationServiceSecurityGroup-${AWS::StackName}"
+      GroupDescription: !Sub "Herogate Application Service Security Group (${AWS::StackName})"
+      SecurityGroupIngress:
+        - CidrIp: "0.0.0.0/0"
+          FromPort: "0"
+          ToPort: "65535"
+          IpProtocol: tcp
+      VpcId: !Ref HerogateNetwork
+  HerogateNetwork:
+    Type: "AWS::EC2::VPC"
+    Properties:
+      CidrBlock: "192.168.0.0/16"
+  HerogateNetworkRouteTable:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref HerogateNetwork
+  HerogateNetworkOutboundRoute:
+    Type: "AWS::EC2::Route"
+    Properties:
+      RouteTableId: !Ref HerogateNetworkRouteTable
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref HerogateNetworkGateway
+  HerogateNetworkGateway:
+    Type: "AWS::EC2::InternetGateway"
+  HerogateNetworkGatewayAttachment:
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties:
+      VpcId: !Ref HerogateNetwork
+      InternetGatewayId: !Ref HerogateNetworkGateway
+  HerogateNetworkSubnetA:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId: !Ref HerogateNetwork
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs
+          Ref: "AWS::Region"
+      CidrBlock: "192.168.0.0/20"
+      MapPublicIpOnLaunch: true
+  HerogateNetworkSubnetB:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId: !Ref HerogateNetwork
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs
+          Ref: "AWS::Region"
+      CidrBlock: "192.168.16.0/20"
+      MapPublicIpOnLaunch: true
+  HerogateNetworkSubnetARoute:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      SubnetId: !Ref HerogateNetworkSubnetA
+      RouteTableId: !Ref HerogateNetworkRouteTable
+  HerogateNetworkSubnetBRoute:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      SubnetId: !Ref HerogateNetworkSubnetB
+      RouteTableId: !Ref HerogateNetworkRouteTable
+  HerogateLoadBalancer:
+    Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    Properties:
+      Name: !Ref AWS::StackName
+      SecurityGroups:
+        - !GetAtt HerogateLoadBalancerSecurityGroup.GroupId
+      Subnets: 
+        - !Ref HerogateNetworkSubnetA
+        - !Ref HerogateNetworkSubnetB
+  HerogateLoadBalancerSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupName: !Sub "HerogateLoadBalancerSecurityGroup-${AWS::StackName}"
+      GroupDescription: !Sub "Herogate LoadBalancer Security Group (${AWS::StackName})"
+      SecurityGroupIngress:
+        - CidrIp: "0.0.0.0/0"
+          FromPort: "0"
+          ToPort: "65535"
+          IpProtocol: tcp
+      VpcId: !Ref HerogateNetwork
+  HerogateLoadBalancerTargetGroup:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    DependsOn: HerogateLoadBalancer
+    Properties:
+      Name: !Ref AWS::StackName
+      TargetType: ip
+      Port: 80
+      Protocol: HTTP
+      VpcId: !Ref HerogateNetwork
+  HerogateLoadBalancerListener:
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties:
+      LoadBalancerArn: !Ref HerogateLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - TargetGroupArn: !Ref HerogateLoadBalancerTargetGroup
+          Type: forward
+
+Outputs:
+  HerogateRepository:
+    Value: !GetAtt HerogateRepository.CloneUrlSsh
+  HerogateURL:
+    Value: !GetAtt HerogateLoadBalancer.DNSName
