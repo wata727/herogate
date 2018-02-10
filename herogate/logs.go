@@ -23,21 +23,21 @@ type logsContext struct {
 }
 
 // Logs retrieves logs from builder, deployer, and app containers.
-func Logs(c *cli.Context) {
+func Logs(ctx *cli.Context) {
 	region, name := detectAppFromRepo()
-	if c.String("app") != "" {
-		logrus.Debug("Override application name: " + c.String("app"))
-		name = c.String("app")
+	if ctx.String("app") != "" {
+		logrus.Debug("Override application name: " + ctx.String("app"))
+		name = ctx.String("app")
 	}
 
 	processLogs(&logsContext{
 		name:   name,
-		app:    c.App,
+		app:    ctx.App,
 		client: api.NewClient(&api.ClientOption{Region: region}),
-		num:    c.Int("num"),
-		ps:     c.String("ps"),
-		source: c.String("source"),
-		tail:   c.Bool("tail"),
+		num:    ctx.Int("num"),
+		ps:     ctx.String("ps"),
+		source: ctx.String("source"),
+		tail:   ctx.Bool("tail"),
 	})
 }
 
