@@ -23,4 +23,8 @@ mock:
 	go get -u github.com/golang/mock/mockgen
 	go generate ./...
 
-.PHONY: default prepare test build install lint mock
+assets:
+	go get -u github.com/a-urth/go-bindata/...
+	go generate ./...
+
+.PHONY: default prepare test build install lint mock assets

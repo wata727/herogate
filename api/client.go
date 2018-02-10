@@ -3,6 +3,8 @@ package api
 import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
 	"github.com/aws/aws-sdk-go/service/codebuild"
@@ -25,6 +27,7 @@ type Client struct {
 	codeBuild      codebuildiface.CodeBuildAPI
 	cloudWatchLogs cloudwatchlogsiface.CloudWatchLogsAPI
 	ecs            ecsiface.ECSAPI
+	cloudFormation cloudformationiface.CloudFormationAPI
 }
 
 // ClientOption is options for Herogate API Client.
@@ -45,5 +48,6 @@ func NewClient(option *ClientOption) *Client {
 		codeBuild:      codebuild.New(s),
 		cloudWatchLogs: cloudwatchlogs.New(s),
 		ecs:            ecs.New(s),
+		cloudFormation: cloudformation.New(s),
 	}
 }

@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Herogate platform template
+Description: Herogate platform template v1.0
 Parameters:
   BuildSpec:
     Type: String

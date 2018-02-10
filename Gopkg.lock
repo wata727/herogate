@@ -34,6 +34,8 @@
     "private/protocol/query/queryutil",
     "private/protocol/rest",
     "private/protocol/xml/xmlutil",
+    "service/cloudformation",
+    "service/cloudformation/cloudformationiface",
     "service/cloudwatchlogs",
     "service/cloudwatchlogs/cloudwatchlogsiface",
     "service/codebuild",
@@ -271,6 +273,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "dc43d9ec716fb55b2bb07a507c3617c1223ef358634543d680fe1909ade6a306"
+  inputs-digest = "be632bb78c067447ced48c1f3e4d94fb45c2e2c686dd8bc9e9227c6022433e52"
   solver-name = "gps-cdcl"
   solver-version = 1
