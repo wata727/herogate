@@ -47,3 +47,7 @@
 [[constraint]]
   name = "gopkg.in/src-d/go-git.v4"
   version = "4.1.0"
+
+[[constraint]]
+  name = "github.com/Atrox/haikunatorgo"
+  version = "2.0.0"

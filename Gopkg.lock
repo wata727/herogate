@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  name = "github.com/Atrox/haikunatorgo"
+  packages = ["."]
+  revision = "a67e32b6e89f0f2d91d81d300787fc01ca0dfd86"
+  version = "v2.0.0"
+
+[[projects]]
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -265,6 +271,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f23188826abaffc50f57575da4fdb00fbcec66225a8182d2454f6da2274c4c08"
+  inputs-digest = "dc43d9ec716fb55b2bb07a507c3617c1223ef358634543d680fe1909ade6a306"
   solver-name = "gps-cdcl"
   solver-version = 1
