@@ -20,9 +20,7 @@ lint:
 	misspell -error $$(find . -type f | grep -v vendor | grep -v mock)
 
 mock:
-	mockgen -source api/iface/client.go -destination mock/client.go -package mock
-	mockgen -source vendor/github.com/aws/aws-sdk-go/service/codebuild/codebuildiface/interface.go -destination mock/codebuild.go -package mock
-	mockgen -source vendor/github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface/interface.go -destination mock/cloudwatchlogs.go -package mock
-	mockgen -source vendor/github.com/aws/aws-sdk-go/service/ecs/ecsiface/interface.go -destination mock/ecs.go -package mock
+	go get -u github.com/golang/mock/mockgen
+	go generate ./...
 
 .PHONY: default prepare test build install lint mock

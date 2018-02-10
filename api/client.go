@@ -13,6 +13,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
 )
 
+//go:generate mockgen -source iface/client.go -destination ../mock/client.go -package mock
+//go:generate mockgen -source ../vendor/github.com/aws/aws-sdk-go/service/codebuild/codebuildiface/interface.go -destination ../mock/codebuild.go -package mock
+//go:generate mockgen -source ../vendor/github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface/interface.go -destination ../mock/cloudwatchlogs.go -package mock
+//go:generate mockgen -source ../vendor/github.com/aws/aws-sdk-go/service/ecs/ecsiface/interface.go -destination ../mock/ecs.go -package mock
+
 // Client is the Herogate API client.
 // This is a wrapper of AWS API clients.
 type Client struct {
