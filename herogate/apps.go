@@ -3,6 +3,7 @@ package herogate
 import (
 	"fmt"
 	"regexp"
+	"time"
 
 	haikunator "github.com/Atrox/haikunatorgo"
 	"github.com/urfave/cli"
@@ -16,6 +17,11 @@ type appsCreateContext struct {
 	client iface.ClientInterface
 }
 
+type appsCreateOutput struct {
+	repository string
+	endpoint   string
+}
+
 // AppsCreate creates a new app with application name provided from CLI.
 // If application name is not provided, This action creates Heroku-like
 // random application name.
@@ -23,7 +29,6 @@ func AppsCreate(ctx *cli.Context) error {
 	name := ctx.Args().First()
 	if name == "" {
 		haikunator := haikunator.New()
-		haikunator.TokenLength = 0
 		name = haikunator.Haikunate()
 	}
 
@@ -53,5 +58,28 @@ func validateAppName(name string) error {
 }
 
 func processAppsCreate(ctx *appsCreateContext) {
-	fmt.Print(ctx.name)
+	ch := make(chan appsCreateOutput, 1)
+	go func() {
+		repository, endpoint := ctx.client.CreateApp(ctx.name)
+		ch <- appsCreateOutput{
+			repository: repository,
+			endpoint:   endpoint,
+		}
+	}()
+	fmt.Fprintln(ctx.app.Writer, "Creating app...")
+	waitCreationAndWriteProgress(ctx, ch)
+}
+
+func waitCreationAndWriteProgress(ctx *appsCreateContext, ch chan appsCreateOutput) {
+	select {
+	case v := <-ch:
+		fmt.Printf("repository: %s\n", v.repository)
+		fmt.Printf("endpoint: %s\n", v.endpoint)
+	default:
+		time.Sleep(10 * time.Second)
+		percent := ctx.client.GetAppCreationProgress(ctx.name)
+		// TODO: More rich progress
+		fmt.Fprintln(ctx.app.Writer, fmt.Sprintf("%d%% Completed", percent))
+		waitCreationAndWriteProgress(ctx, ch)
+	}
 }
