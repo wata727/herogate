@@ -2,6 +2,7 @@ package herogate
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -50,6 +51,8 @@ func TestProcessAppsCreate(t *testing.T) {
 	app.Writer = writer
 
 	client := mock.NewMockClientInterface(ctrl)
+	// Expect to get application
+	client.EXPECT().GetApp("young-eyrie-24091").Return(nil, errors.New("Stack not found"))
 	// Expect to create application
 	client.EXPECT().CreateApp("young-eyrie-24091").Return(
 		"ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",

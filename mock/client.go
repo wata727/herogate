@@ -6,6 +6,7 @@ package mock
 
 import (
 	gomock "github.com/golang/mock/gomock"
+	objects "github.com/wata727/herogate/api/objects"
 	options "github.com/wata727/herogate/api/options"
 	log "github.com/wata727/herogate/log"
 	reflect "reflect"
@@ -69,4 +70,17 @@ func (m *MockClientInterface) DescribeLogs(appName string, options *options.Desc
 // DescribeLogs indicates an expected call of DescribeLogs
 func (mr *MockClientInterfaceMockRecorder) DescribeLogs(appName, options interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLogs", reflect.TypeOf((*MockClientInterface)(nil).DescribeLogs), appName, options)
+}
+
+// GetApp mocks base method
+func (m *MockClientInterface) GetApp(appName string) (*objects.App, error) {
+	ret := m.ctrl.Call(m, "GetApp", appName)
+	ret0, _ := ret[0].(*objects.App)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetApp indicates an expected call of GetApp
+func (mr *MockClientInterfaceMockRecorder) GetApp(appName interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetApp", reflect.TypeOf((*MockClientInterface)(nil).GetApp), appName)
 }

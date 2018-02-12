@@ -1,10 +1,13 @@
 package api
 
 import (
+	"errors"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/sirupsen/logrus"
 	"github.com/wata727/herogate/api/assets"
+	"github.com/wata727/herogate/api/objects"
 )
 
 //go:generate go-bindata -o assets/assets.go -pkg assets assets/platform.yaml
@@ -147,4 +150,47 @@ func (c *Client) GetAppCreationProgress(appName string) int {
 	}
 
 	return int((float64(created) / totalResources) * 100)
+}
+
+// GetApp returns the application object.
+// If the application not found, returns nil and error.
+func (c *Client) GetApp(appName string) (*objects.App, error) {
+	resp, err := c.cloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String(appName),
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(resp.Stacks) == 0 {
+		return nil, errors.New("Expected stack not found")
+	}
+	stack := resp.Stacks[0]
+
+	var repository, endpoint string
+	for _, output := range stack.Outputs {
+		switch aws.StringValue(output.OutputKey) {
+		case "HerogateRepository":
+			repository = aws.StringValue(output.OutputValue)
+		case "HerogateURL":
+			endpoint = aws.StringValue(output.OutputValue)
+		}
+	}
+
+	if aws.StringValue(stack.StackStatus) == "CREATE_COMPLETE" {
+		if repository == "" || endpoint == "" {
+			logrus.WithFields(logrus.Fields{
+				"appName":    appName,
+				"repository": repository,
+				"endpoint":   endpoint,
+				"outputs":    stack.Outputs,
+			}).Fatal("Expected outputs are not found.")
+		}
+	}
+
+	return &objects.App{
+		Name:       appName,
+		Status:     aws.StringValue(stack.StackStatus),
+		Repository: repository,
+		Endpoint:   endpoint,
+	}, nil
 }

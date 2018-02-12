@@ -39,32 +39,18 @@ func AppsCreate(ctx *cli.Context) error {
 		name = haikunator.Haikunate()
 	}
 
-	if err := validateAppName(name); err != nil {
-		return cli.NewExitError(err.Error(), 1)
-	}
-
-	processAppsCreate(&appsCreateContext{
+	return processAppsCreate(&appsCreateContext{
 		name:   name,
 		app:    ctx.App,
 		client: api.NewClient(&api.ClientOption{}),
 	})
-
-	return nil
 }
 
-func validateAppName(name string) error {
-	matched, err := regexp.MatchString(`^[a-z0-9][a-z-0-9_\-]+[a-z0-9]$`, name)
-	if err != nil {
-		return fmt.Errorf("ERROR: Failed to validate app name: %s", name)
+func processAppsCreate(ctx *appsCreateContext) error {
+	if err := validateAppName(ctx); err != nil {
+		return cli.NewExitError(err.Error(), 1)
 	}
-	if !matched {
-		return fmt.Errorf("ERROR: The application name must match the pattern of `^[a-z0-9][a-z-0-9_\\-]+[a-z0-9]$`: %s", name)
-	}
-	// TODO: validate duplicate app name
-	return nil
-}
 
-func processAppsCreate(ctx *appsCreateContext) {
 	ch := make(chan appsCreateOutput, 1)
 	go func() {
 		repository, endpoint := ctx.client.CreateApp(ctx.name)
@@ -82,6 +68,24 @@ func processAppsCreate(ctx *appsCreateContext) {
 	}()
 
 	io.Copy(ctx.app.Writer, r)
+
+	return nil
+}
+
+func validateAppName(ctx *appsCreateContext) error {
+	matched, err := regexp.MatchString(`^[a-z0-9][a-z-0-9_\-]+[a-z0-9]$`, ctx.name)
+	if err != nil {
+		return fmt.Errorf("ERROR: Failed to validate app name: %s", ctx.name)
+	}
+	if !matched {
+		return fmt.Errorf("ERROR: The application name must match the pattern of `^[a-z0-9][a-z-0-9_\\-]+[a-z0-9]$`: %s", ctx.name)
+	}
+
+	if app, _ := ctx.client.GetApp(ctx.name); app != nil {
+		return fmt.Errorf("ERROR: The application name already exists")
+	}
+
+	return nil
 }
 
 func waitCreationAndWriteProgress(ctx *appsCreateContext, w io.Writer, ch chan appsCreateOutput) {
