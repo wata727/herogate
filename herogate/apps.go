@@ -27,6 +27,8 @@ type appsCreateOutput struct {
 	endpoint   string
 }
 
+var progressCheckInterval = 10 * time.Second
+
 // AppsCreate creates a new app with application name provided from CLI.
 // If application name is not provided, This action creates Heroku-like
 // random application name.
@@ -89,7 +91,7 @@ func waitCreationAndWriteProgress(ctx *appsCreateContext, w io.Writer, ch chan a
 	default:
 		percent := ctx.client.GetAppCreationProgress(ctx.name)
 		fmt.Fprintf(w, "Creating app... %d%%\r", percent)
-		time.Sleep(10 * time.Second)
+		time.Sleep(progressCheckInterval)
 		waitCreationAndWriteProgress(ctx, w, ch)
 	}
 }

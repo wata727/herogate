@@ -34,6 +34,31 @@ func (m *MockClientInterface) EXPECT() *MockClientInterfaceMockRecorder {
 	return m.recorder
 }
 
+// CreateApp mocks base method
+func (m *MockClientInterface) CreateApp(appName string) (string, string) {
+	ret := m.ctrl.Call(m, "CreateApp", appName)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(string)
+	return ret0, ret1
+}
+
+// CreateApp indicates an expected call of CreateApp
+func (mr *MockClientInterfaceMockRecorder) CreateApp(appName interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateApp", reflect.TypeOf((*MockClientInterface)(nil).CreateApp), appName)
+}
+
+// GetAppCreationProgress mocks base method
+func (m *MockClientInterface) GetAppCreationProgress(appName string) int {
+	ret := m.ctrl.Call(m, "GetAppCreationProgress", appName)
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+// GetAppCreationProgress indicates an expected call of GetAppCreationProgress
+func (mr *MockClientInterfaceMockRecorder) GetAppCreationProgress(appName interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAppCreationProgress", reflect.TypeOf((*MockClientInterface)(nil).GetAppCreationProgress), appName)
+}
+
 // DescribeLogs mocks base method
 func (m *MockClientInterface) DescribeLogs(appName string, options *options.DescribeLogs) []*log.Log {
 	ret := m.ctrl.Call(m, "DescribeLogs", appName, options)

@@ -19,6 +19,7 @@ import (
 //go:generate mockgen -source ../vendor/github.com/aws/aws-sdk-go/service/codebuild/codebuildiface/interface.go -destination ../mock/codebuild.go -package mock
 //go:generate mockgen -source ../vendor/github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface/interface.go -destination ../mock/cloudwatchlogs.go -package mock
 //go:generate mockgen -source ../vendor/github.com/aws/aws-sdk-go/service/ecs/ecsiface/interface.go -destination ../mock/ecs.go -package mock
+//go:generate mockgen -source ../vendor/github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface/interface.go -destination ../mock/cloudformation.go -package mock
 
 // Client is the Herogate API client.
 // This is a wrapper of AWS API clients.
