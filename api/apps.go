@@ -9,6 +9,9 @@ import (
 
 //go:generate go-bindata -o assets/assets.go -pkg assets assets/platform.yaml
 
+// CreateApp creates a new CloudFormation stack and wait until stack create complete.
+// When the stack is created, returns ALB endpoint URL and CodeCommit URL.
+// If the stack creation is failed, delete this stack.
 func (c *Client) CreateApp(appName string) (string, string) {
 	yaml, err := assets.Asset("assets/platform.yaml")
 	if err != nil {
@@ -121,9 +124,11 @@ func extractStackOutput(appName string, outputs []*cloudformation.Output) (strin
 	return repository, endpoint
 }
 
+// GetAppCreationProgress returns the creation progress of the application.
+// This function calculates the proportion of resources that are "CREATE_COMPLETE".
 func (c *Client) GetAppCreationProgress(appName string) int {
 	// XXX: Count of resources of `assets/platform.yaml`
-	var totalResources int = 25
+	var totalResources = 25.0
 
 	resp, err := c.cloudFormation.ListStackResources(&cloudformation.ListStackResourcesInput{
 		StackName: aws.String(appName),
@@ -134,12 +139,12 @@ func (c *Client) GetAppCreationProgress(appName string) int {
 		}).Fatal("Failed to get stack resources: " + err.Error())
 	}
 
-	var created int = 0
+	var created int
 	for _, s := range resp.StackResourceSummaries {
 		if aws.StringValue(s.ResourceStatus) == "CREATE_COMPLETE" {
-			created += 1
+			created++
 		}
 	}
 
-	return int((float64(created) / float64(totalResources)) * 100)
+	return int((float64(created) / totalResources) * 100)
 }

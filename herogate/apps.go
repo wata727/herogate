@@ -75,7 +75,6 @@ func processAppsCreate(ctx *appsCreateContext) {
 	r, w := io.Pipe()
 	go func() {
 		defer w.Close()
-		fmt.Fprint(w, "Creating app... 0%\r")
 		waitCreationAndWriteProgress(ctx, w, ch)
 	}()
 
@@ -88,9 +87,9 @@ func waitCreationAndWriteProgress(ctx *appsCreateContext, w io.Writer, ch chan a
 		writeCreatedRepository(v.repository)
 		writeCreationResult(ctx.name, v, w)
 	default:
-		time.Sleep(10 * time.Second)
 		percent := ctx.client.GetAppCreationProgress(ctx.name)
 		fmt.Fprintf(w, "Creating app... %d%%\r", percent)
+		time.Sleep(10 * time.Second)
 		waitCreationAndWriteProgress(ctx, w, ch)
 	}
 }
