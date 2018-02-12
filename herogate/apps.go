@@ -40,9 +40,11 @@ func AppsCreate(ctx *cli.Context) error {
 	}
 
 	return processAppsCreate(&appsCreateContext{
-		name:   name,
-		app:    ctx.App,
-		client: api.NewClient(&api.ClientOption{}),
+		name: name,
+		app:  ctx.App,
+		client: api.NewClient(&api.ClientOption{
+			Region: "us-east-1", // NOTE: Currently, Fargate supported region is only `us-east-1`
+		}),
 	})
 }
 
