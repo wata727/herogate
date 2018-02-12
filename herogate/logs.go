@@ -22,6 +22,8 @@ type logsContext struct {
 	tail   bool
 }
 
+var fetchLogsInterval = 5 * time.Second
+
 // Logs retrieves logs from builder, deployer, and app containers.
 func Logs(ctx *cli.Context) {
 	region, name := detectAppFromRepo()
@@ -54,7 +56,7 @@ func processLogs(ctx *logsContext) {
 	}
 
 	for ctx.tail {
-		time.Sleep(5 * time.Second)
+		time.Sleep(fetchLogsInterval)
 		for _, eventLog := range fetchNewLogs(ctx, lastEventLog) {
 			lastEventLog = eventLog
 			fmt.Fprintln(ctx.app.Writer, eventLog.Format())
