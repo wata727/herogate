@@ -2,13 +2,18 @@ package herogate
 
 import (
 	"fmt"
+	"io"
 	"regexp"
 	"time"
 
 	haikunator "github.com/Atrox/haikunatorgo"
+	"github.com/fatih/color"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"github.com/wata727/herogate/api"
 	"github.com/wata727/herogate/api/iface"
+	git "gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/config"
 )
 
 type appsCreateContext struct {
@@ -63,23 +68,54 @@ func processAppsCreate(ctx *appsCreateContext) {
 		repository, endpoint := ctx.client.CreateApp(ctx.name)
 		ch <- appsCreateOutput{
 			repository: repository,
-			endpoint:   endpoint,
+			endpoint:   "http://" + endpoint,
 		}
 	}()
-	fmt.Fprintln(ctx.app.Writer, "Creating app...")
-	waitCreationAndWriteProgress(ctx, ch)
+
+	r, w := io.Pipe()
+	go func() {
+		defer w.Close()
+		fmt.Fprint(w, "Creating app... 0%\r")
+		waitCreationAndWriteProgress(ctx, w, ch)
+	}()
+
+	io.Copy(ctx.app.Writer, r)
 }
 
-func waitCreationAndWriteProgress(ctx *appsCreateContext, ch chan appsCreateOutput) {
+func waitCreationAndWriteProgress(ctx *appsCreateContext, w io.Writer, ch chan appsCreateOutput) {
 	select {
 	case v := <-ch:
-		fmt.Printf("repository: %s\n", v.repository)
-		fmt.Printf("endpoint: %s\n", v.endpoint)
+		writeCreatedRepository(v.repository)
+		writeCreationResult(ctx.name, v, w)
 	default:
 		time.Sleep(10 * time.Second)
 		percent := ctx.client.GetAppCreationProgress(ctx.name)
-		// TODO: More rich progress
-		fmt.Fprintln(ctx.app.Writer, fmt.Sprintf("%d%% Completed", percent))
-		waitCreationAndWriteProgress(ctx, ch)
+		fmt.Fprintf(w, "Creating app... %d%%\r", percent)
+		waitCreationAndWriteProgress(ctx, w, ch)
 	}
+}
+
+func writeCreatedRepository(repositoryURL string) {
+	repo, err := git.PlainOpen(".")
+	if err != nil {
+		logrus.Debug("Failed to open local Git repository: " + err.Error())
+		return
+	}
+
+	_, err = repo.CreateRemote(&config.RemoteConfig{
+		Name: "herogate",
+		URLs: []string{repositoryURL},
+	})
+	if err != nil {
+		logrus.Debug("Failed to create remote: " + err.Error())
+		return
+	}
+}
+
+func writeCreationResult(appName string, v appsCreateOutput, w io.Writer) {
+	appColor := color.New(color.FgMagenta)
+	fmt.Fprintln(w, "Creating app... done, "+appColor.Sprintf("⬢ %s", appName))
+	endpointColor := color.New(color.FgCyan)
+	repositoryColor := color.New(color.FgGreen)
+	fmt.Fprintf(w, "%s | %s\n", endpointColor.Sprint(v.endpoint), repositoryColor.Sprint(v.repository))
 }

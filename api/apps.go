@@ -65,6 +65,12 @@ func (c *Client) CreateApp(appName string) (string, string) {
 	}
 	stack := resp.Stacks[0]
 
+	c.validateStackStatus(appName, stack)
+
+	return extractStackOutput(appName, stack.Outputs)
+}
+
+func (c *Client) validateStackStatus(appName string, stack *cloudformation.Stack) {
 	if aws.StringValue(stack.StackStatus) != "CREATE_COMPLETE" {
 		resourcesResp, err := c.cloudFormation.ListStackResources(&cloudformation.ListStackResourcesInput{
 			StackName: aws.String(appName),
@@ -75,6 +81,7 @@ func (c *Client) CreateApp(appName string) (string, string) {
 			}).Fatal("Failed to get failed stack resources: " + err.Error())
 		}
 
+		// If status is not `CREATE_COMPLETE`, delete the stack.
 		_, err = c.cloudFormation.DeleteStack(&cloudformation.DeleteStackInput{
 			StackName: aws.String(appName),
 		})
@@ -89,9 +96,11 @@ func (c *Client) CreateApp(appName string) (string, string) {
 			"summaries": resourcesResp.StackResourceSummaries,
 		}).Fatal("Failed to stack creation.")
 	}
+}
 
+func extractStackOutput(appName string, outputs []*cloudformation.Output) (string, string) {
 	var repository, endpoint string
-	for _, output := range stack.Outputs {
+	for _, output := range outputs {
 		switch aws.StringValue(output.OutputKey) {
 		case "HerogateRepository":
 			repository = aws.StringValue(output.OutputValue)
@@ -105,7 +114,7 @@ func (c *Client) CreateApp(appName string) (string, string) {
 			"appName":    appName,
 			"repository": repository,
 			"endpoint":   endpoint,
-			"outputs":    stack.Outputs,
+			"outputs":    outputs,
 		}).Fatal("Expected outputs are not found.")
 	}
 
