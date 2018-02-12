@@ -8,7 +8,7 @@ import (
 
 // ClientInterface is the API client's interface.
 type ClientInterface interface {
-	CreateApp(appName string) (string, string)
+	CreateApp(appName string) *objects.App
 	GetAppCreationProgress(appName string) int
 	DescribeLogs(appName string, options *options.DescribeLogs) []*log.Log
 	GetApp(appName string) (*objects.App, error)

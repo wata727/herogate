@@ -1,12 +1,15 @@
 package api
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	"github.com/wata727/herogate/api/assets"
+	"github.com/wata727/herogate/api/objects"
 	"github.com/wata727/herogate/mock"
 )
 
@@ -67,12 +70,15 @@ func TestCreateApp(t *testing.T) {
 	client := NewClient(&ClientOption{})
 	client.cloudFormation = cfnMock
 
-	repository, endpoint := client.CreateApp("young-eyrie-24091")
-	if repository != "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091" {
-		t.Fatalf("Expected repository is `ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091`, but get `%s`", repository)
+	app := client.CreateApp("young-eyrie-24091")
+	expected := &objects.App{
+		Name:       "young-eyrie-24091",
+		Status:     "CREATE_COMPLETE",
+		Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
+		Endpoint:   "young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com",
 	}
-	if endpoint != "young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com" {
-		t.Fatalf("Expected endpoint is `young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com`, but get `%s`", endpoint)
+	if !cmp.Equal(expected, app) {
+		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, app))
 	}
 }
 
@@ -126,5 +132,70 @@ func TestGetAppCreationProgress(t *testing.T) {
 	//   => (6 / 25) * 100 = 24
 	if rate != 24 {
 		t.Fatalf("Expected progress rate is `24`, but get `%d`", rate)
+	}
+}
+
+func TestGetApp(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	cfnMock := mock.NewMockCloudFormationAPI(ctrl)
+	cfnMock.EXPECT().DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String("young-eyrie-24091"),
+	}).Return(&cloudformation.DescribeStacksOutput{
+		Stacks: []*cloudformation.Stack{
+			{
+				StackStatus: aws.String("CREATE_COMPLETE"),
+				Outputs: []*cloudformation.Output{
+					{
+						OutputKey:   aws.String("HerogateRepository"),
+						OutputValue: aws.String("ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091"),
+					},
+					{
+						OutputKey:   aws.String("HerogateURL"),
+						OutputValue: aws.String("young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com"),
+					},
+				},
+			},
+		},
+	}, nil)
+
+	client := NewClient(&ClientOption{})
+	client.cloudFormation = cfnMock
+	app, err := client.GetApp("young-eyrie-24091")
+
+	if err != nil {
+		t.Fatal("Expected error is nil, but get error: " + err.Error())
+	}
+
+	expected := &objects.App{
+		Name:       "young-eyrie-24091",
+		Status:     "CREATE_COMPLETE",
+		Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
+		Endpoint:   "young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com",
+	}
+	if !cmp.Equal(expected, app) {
+		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, app))
+	}
+}
+
+func TestGetApp__notFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	cfnMock := mock.NewMockCloudFormationAPI(ctrl)
+	cfnMock.EXPECT().DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String("young-eyrie-24091"),
+	}).Return(nil, errors.New("stack not found"))
+
+	client := NewClient(&ClientOption{})
+	client.cloudFormation = cfnMock
+	app, err := client.GetApp("young-eyrie-24091")
+
+	if err == nil {
+		t.Fatal("Expected error is not nil, but get nil as error")
+	}
+	if app != nil {
+		t.Fatal("Expected app is nil, but get app")
 	}
 }

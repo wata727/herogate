@@ -36,11 +36,10 @@ func (m *MockClientInterface) EXPECT() *MockClientInterfaceMockRecorder {
 }
 
 // CreateApp mocks base method
-func (m *MockClientInterface) CreateApp(appName string) (string, string) {
+func (m *MockClientInterface) CreateApp(appName string) *objects.App {
 	ret := m.ctrl.Call(m, "CreateApp", appName)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(string)
-	return ret0, ret1
+	ret0, _ := ret[0].(*objects.App)
+	return ret0
 }
 
 // CreateApp indicates an expected call of CreateApp

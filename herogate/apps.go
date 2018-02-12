@@ -53,10 +53,10 @@ func processAppsCreate(ctx *appsCreateContext) error {
 
 	ch := make(chan appsCreateOutput, 1)
 	go func() {
-		repository, endpoint := ctx.client.CreateApp(ctx.name)
+		app := ctx.client.CreateApp(ctx.name)
 		ch <- appsCreateOutput{
-			repository: repository,
-			endpoint:   "http://" + endpoint,
+			repository: app.Repository,
+			endpoint:   "http://" + app.Endpoint,
 		}
 	}()
 
