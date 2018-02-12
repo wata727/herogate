@@ -75,7 +75,7 @@ func TestCreateApp(t *testing.T) {
 		Name:       "young-eyrie-24091",
 		Status:     "CREATE_COMPLETE",
 		Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
-		Endpoint:   "young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com",
+		Endpoint:   "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com",
 	}
 	if !cmp.Equal(expected, app) {
 		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, app))
@@ -172,7 +172,7 @@ func TestGetApp(t *testing.T) {
 		Name:       "young-eyrie-24091",
 		Status:     "CREATE_COMPLETE",
 		Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
-		Endpoint:   "young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com",
+		Endpoint:   "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com",
 	}
 	if !cmp.Equal(expected, app) {
 		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, app))

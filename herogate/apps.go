@@ -56,7 +56,7 @@ func processAppsCreate(ctx *appsCreateContext) error {
 		app := ctx.client.CreateApp(ctx.name)
 		ch <- appsCreateOutput{
 			repository: app.Repository,
-			endpoint:   "http://" + app.Endpoint,
+			endpoint:   app.Endpoint,
 		}
 	}()
 

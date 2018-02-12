@@ -60,10 +60,10 @@ func TestProcessAppsCreate(t *testing.T) {
 		Name:       "young-eyrie-24091",
 		Status:     "CREATE_COMPLETE",
 		Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
-		Endpoint:   "young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com",
+		Endpoint:   "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com",
 	})
-	// Expect to get progress rate
-	client.EXPECT().GetAppCreationProgress("young-eyrie-24091").Return(100)
+	// Allow to get progress rate
+	client.EXPECT().GetAppCreationProgress("young-eyrie-24091").Return(100).AnyTimes()
 
 	err = processAppsCreate(&appsCreateContext{
 		name:   "young-eyrie-24091",

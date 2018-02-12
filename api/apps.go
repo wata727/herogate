@@ -160,6 +160,6 @@ func (c *Client) GetApp(appName string) (*objects.App, error) {
 		Name:       appName,
 		Status:     aws.StringValue(stack.StackStatus),
 		Repository: repository,
-		Endpoint:   endpoint,
+		Endpoint:   "http://" + endpoint, // ALB endpoint DNS doesn't contain schema
 	}, nil
 }
