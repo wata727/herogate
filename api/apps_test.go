@@ -25,14 +25,8 @@ func TestCreateApp(t *testing.T) {
 	cfnMock := mock.NewMockCloudFormationAPI(ctrl)
 	// Expect to create stack with application name
 	cfnMock.EXPECT().CreateStack(&cloudformation.CreateStackInput{
-		StackName:    aws.String("young-eyrie-24091"),
-		TemplateBody: aws.String((string(yaml))),
-		Parameters: []*cloudformation.Parameter{
-			{
-				ParameterKey:   aws.String("BuildSpec"),
-				ParameterValue: aws.String(""),
-			},
-		},
+		StackName:        aws.String("young-eyrie-24091"),
+		TemplateBody:     aws.String((string(yaml))),
 		TimeoutInMinutes: aws.Int64(10),
 		Capabilities:     []*string{aws.String("CAPABILITY_NAMED_IAM")},
 		Tags: []*cloudformation.Tag{
@@ -55,11 +49,11 @@ func TestCreateApp(t *testing.T) {
 				StackStatus: aws.String("CREATE_COMPLETE"),
 				Outputs: []*cloudformation.Output{
 					{
-						OutputKey:   aws.String("HerogateRepository"),
+						OutputKey:   aws.String("Repository"),
 						OutputValue: aws.String("ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091"),
 					},
 					{
-						OutputKey:   aws.String("HerogateURL"),
+						OutputKey:   aws.String("Endpoint"),
 						OutputValue: aws.String("young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com"),
 					},
 				},
@@ -128,10 +122,10 @@ func TestGetAppCreationProgress(t *testing.T) {
 	client.cloudFormation = cfnMock
 
 	rate := client.GetAppCreationProgress("young-eyrie-24091")
-	// Total resources: 25, Created: 6
-	//   => (6 / 25) * 100 = 24
-	if rate != 24 {
-		t.Fatalf("Expected progress rate is `24`, but get `%d`", rate)
+	// Total resources: 26, Created: 6
+	//   => (6 / 26) * 100 = 23.07...
+	if rate != 23 {
+		t.Fatalf("Expected progress rate is `23`, but get `%d`", rate)
 	}
 }
 
@@ -148,11 +142,11 @@ func TestGetApp(t *testing.T) {
 				StackStatus: aws.String("CREATE_COMPLETE"),
 				Outputs: []*cloudformation.Output{
 					{
-						OutputKey:   aws.String("HerogateRepository"),
+						OutputKey:   aws.String("Repository"),
 						OutputValue: aws.String("ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091"),
 					},
 					{
-						OutputKey:   aws.String("HerogateURL"),
+						OutputKey:   aws.String("Endpoint"),
 						OutputValue: aws.String("young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com"),
 					},
 				},

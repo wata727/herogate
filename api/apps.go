@@ -24,14 +24,8 @@ func (c *Client) CreateApp(appName string) *objects.App {
 	}
 
 	_, err = c.cloudFormation.CreateStack(&cloudformation.CreateStackInput{
-		StackName:    aws.String(appName),
-		TemplateBody: aws.String((string(yaml))),
-		Parameters: []*cloudformation.Parameter{
-			{
-				ParameterKey:   aws.String("BuildSpec"),
-				ParameterValue: aws.String(""),
-			},
-		},
+		StackName:        aws.String(appName),
+		TemplateBody:     aws.String((string(yaml))),
 		TimeoutInMinutes: aws.Int64(10),
 		Capabilities:     []*string{aws.String("CAPABILITY_NAMED_IAM")},
 		Tags: []*cloudformation.Tag{
@@ -100,7 +94,7 @@ func (c *Client) validateAppStatus(app *objects.App) {
 // This function calculates the proportion of resources that are "CREATE_COMPLETE".
 func (c *Client) GetAppCreationProgress(appName string) int {
 	// XXX: Count of resources of `assets/platform.yaml`
-	var totalResources = 25.0
+	var totalResources = 26.0
 
 	resp, err := c.cloudFormation.ListStackResources(&cloudformation.ListStackResourcesInput{
 		StackName: aws.String(appName),
@@ -138,9 +132,9 @@ func (c *Client) GetApp(appName string) (*objects.App, error) {
 	var repository, endpoint string
 	for _, output := range stack.Outputs {
 		switch aws.StringValue(output.OutputKey) {
-		case "HerogateRepository":
+		case "Repository":
 			repository = aws.StringValue(output.OutputValue)
-		case "HerogateURL":
+		case "Endpoint":
 			endpoint = aws.StringValue(output.OutputValue)
 		}
 	}

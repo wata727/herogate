@@ -1,10 +1,71 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Herogate platform template v1.0
-Parameters:
-  BuildSpec:
-    Type: String
+Description: Herogate Platform Template v1.0
 
 Resources:
+  # Network
+  HerogateNetwork:
+    Type: "AWS::EC2::VPC"
+    Properties:
+      CidrBlock: "192.168.0.0/16"
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+  HerogateNetworkSubnetA:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId: !Ref HerogateNetwork
+      AvailabilityZone: !Select [ 0, !GetAZs ]
+      CidrBlock: "192.168.0.0/20"
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName} Subnet A"
+  HerogateNetworkSubnetB:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId: !Ref HerogateNetwork
+      AvailabilityZone: !Select [ 1, !GetAZs ]
+      CidrBlock: "192.168.16.0/20"
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName} Subnet B"
+  HerogateNetworkRouteTable:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref HerogateNetwork
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+  HerogateNetworkOutboundRoute:
+    Type: "AWS::EC2::Route"
+    Properties:
+      RouteTableId: !Ref HerogateNetworkRouteTable
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref HerogateNetworkGateway
+  HerogateNetworkGateway:
+    Type: "AWS::EC2::InternetGateway"
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+  HerogateNetworkGatewayAttachment:
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties:
+      VpcId: !Ref HerogateNetwork
+      InternetGatewayId: !Ref HerogateNetworkGateway
+  HerogateNetworkSubnetARoute:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      SubnetId: !Ref HerogateNetworkSubnetA
+      RouteTableId: !Ref HerogateNetworkRouteTable
+  HerogateNetworkSubnetBRoute:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      SubnetId: !Ref HerogateNetworkSubnetB
+      RouteTableId: !Ref HerogateNetworkRouteTable
+
+  # Pipeline
   HerogatePipeline:
     Type: "AWS::CodePipeline::Pipeline"
     Properties:
@@ -54,6 +115,7 @@ Resources:
               Configuration:
                 ClusterName: !Ref HerogateApplicationCluster
                 ServiceName: !GetAtt HerogateApplicationService.Name
+                FileName: images.json
               InputArtifacts:
                 - Name: HerogateBuild
   HerogatePipelineArtifactStore:
@@ -101,6 +163,12 @@ Resources:
     Type: "AWS::CodeCommit::Repository"
     Properties:
       RepositoryName: !Ref AWS::StackName
+  HerogateRegistry:
+    Type: "AWS::ECR::Repository"
+    Properties:
+      RepositoryName: !Ref AWS::StackName
+
+  # Builder
   HerogateBuilder:
     Type: "AWS::CodeBuild::Project"
     Properties:
@@ -110,10 +178,31 @@ Resources:
         ComputeType: BUILD_GENERAL1_SMALL
         PrivilegedMode: true
         Image: aws/codebuild/docker:17.09.0
+        EnvironmentVariables:
+          - Name: AWS_DEFAULT_REGION
+            Value: !Ref AWS::Region
+          - Name: REPOSITORY_URI
+            Value: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${HerogateRegistry}"
       ServiceRole: !GetAtt HerogateBuilderRole.Arn
       Source:
         Type: CODEPIPELINE
-        BuildSpec: !Ref BuildSpec
+        BuildSpec: |
+          version: 0.2
+          phases:
+            pre_build:
+              commands:
+                - $(aws ecr get-login --no-include-email)
+                - TAG="$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | head -c 8)"
+                - IMAGE_URI="${REPOSITORY_URI}:${TAG}"
+            build:
+              commands:
+                - docker build --tag "$IMAGE_URI" .
+            post_build:
+              commands:
+                - docker push "$IMAGE_URI"
+                - printf '[{"name":"web","imageUri":"%s"}]' "$IMAGE_URI" > images.json
+          artifacts:
+            files: images.json
       Artifacts:
         Type: CODEPIPELINE
   HerogateBuilderRole:
@@ -133,6 +222,9 @@ Resources:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
+                Resource: "*"
+                Action: ecr:GetAuthorizationToken
+              - Effect: Allow
                 Resource:
                   - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${AWS::StackName}"
                   - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${AWS::StackName}:*"
@@ -141,17 +233,23 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
               - Effect: Allow
-                Resource:
-                  - !Sub "arn:aws:s3:::${HerogatePipelineArtifactStore}*"
+                Resource: !Sub "arn:aws:s3:::${HerogatePipelineArtifactStore}*"
                 Action:
                   - s3:PutObject
                   - s3:GetObject
                   - s3:GetObjectVersion
               - Effect: Allow
-                Resource:
-                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/CodeBuild/*"
+                Resource: !Sub arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${HerogateRegistry}
                 Action:
-                  - ssm:GetParameters
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:PutImage
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+
+  # Deployer
   HerogateApplicationCluster:
     Type: "AWS::ECS::Cluster"
     Properties:
@@ -230,57 +328,6 @@ Resources:
           ToPort: "65535"
           IpProtocol: tcp
       VpcId: !Ref HerogateNetwork
-  HerogateNetwork:
-    Type: "AWS::EC2::VPC"
-    Properties:
-      CidrBlock: "192.168.0.0/16"
-  HerogateNetworkRouteTable:
-    Type: "AWS::EC2::RouteTable"
-    Properties:
-      VpcId: !Ref HerogateNetwork
-  HerogateNetworkOutboundRoute:
-    Type: "AWS::EC2::Route"
-    Properties:
-      RouteTableId: !Ref HerogateNetworkRouteTable
-      DestinationCidrBlock: "0.0.0.0/0"
-      GatewayId: !Ref HerogateNetworkGateway
-  HerogateNetworkGateway:
-    Type: "AWS::EC2::InternetGateway"
-  HerogateNetworkGatewayAttachment:
-    Type: "AWS::EC2::VPCGatewayAttachment"
-    Properties:
-      VpcId: !Ref HerogateNetwork
-      InternetGatewayId: !Ref HerogateNetworkGateway
-  HerogateNetworkSubnetA:
-    Type: "AWS::EC2::Subnet"
-    Properties:
-      VpcId: !Ref HerogateNetwork
-      AvailabilityZone: !Select
-        - 0
-        - !GetAZs
-          Ref: "AWS::Region"
-      CidrBlock: "192.168.0.0/20"
-      MapPublicIpOnLaunch: true
-  HerogateNetworkSubnetB:
-    Type: "AWS::EC2::Subnet"
-    Properties:
-      VpcId: !Ref HerogateNetwork
-      AvailabilityZone: !Select
-        - 1
-        - !GetAZs
-          Ref: "AWS::Region"
-      CidrBlock: "192.168.16.0/20"
-      MapPublicIpOnLaunch: true
-  HerogateNetworkSubnetARoute:
-    Type: "AWS::EC2::SubnetRouteTableAssociation"
-    Properties:
-      SubnetId: !Ref HerogateNetworkSubnetA
-      RouteTableId: !Ref HerogateNetworkRouteTable
-  HerogateNetworkSubnetBRoute:
-    Type: "AWS::EC2::SubnetRouteTableAssociation"
-    Properties:
-      SubnetId: !Ref HerogateNetworkSubnetB
-      RouteTableId: !Ref HerogateNetworkRouteTable
   HerogateLoadBalancer:
     Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
     Properties:
@@ -321,7 +368,7 @@ Resources:
           Type: forward
 
 Outputs:
-  HerogateRepository:
+  Repository:
     Value: !GetAtt HerogateRepository.CloneUrlSsh
-  HerogateURL:
+  Endpoint:
     Value: !GetAtt HerogateLoadBalancer.DNSName
