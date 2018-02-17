@@ -117,7 +117,6 @@ Resources:
                     - HerogateRepository
                     - Name
                 BranchName: master
-                PollForSourceChanges: false
               OutputArtifacts:
                 - Name: HerogateSource
         - Name: Builder
@@ -149,6 +148,10 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_NAMED_IAM
                 TemplatePath: HerogateBuild::platform.yaml
+                RoleArn:
+                  Fn::GetAtt:
+                    - HerogateDeployerRole
+                    - Arn
               InputArtifacts:
                 - Name: HerogateBuild
   HerogatePipelineArtifactStore:
@@ -206,6 +209,7 @@ Resources:
       RepositoryName:
         Ref: AWS::StackName
 
+
   # Builder
   HerogateBuilder:
     Type: "AWS::CodeBuild::Project"
@@ -221,9 +225,15 @@ Resources:
           - Name: AWS_DEFAULT_REGION
             Value:
               Ref: AWS::Region
+          - Name: AWS_REGION
+            Value:
+              Ref: AWS::Region
           - Name: REPOSITORY_URI
             Value:
               Fn::Sub: "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${HerogateRegistry}"
+          - Name: APP_NAME
+            Value:
+              Ref: AWS::StackName
       ServiceRole:
         Fn::GetAtt:
           - HerogateBuilderRole
@@ -238,15 +248,17 @@ Resources:
                 - $(aws ecr get-login --no-include-email)
                 - TAG="$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | head -c 8)"
                 - IMAGE_URI="${REPOSITORY_URI}:${TAG}"
+                - wget https://s3.amazonaws.com/wata727-releases/herogate
+                - install herogate /usr/local/bin
             build:
               commands:
                 - docker build --tag "$IMAGE_URI" .
             post_build:
               commands:
                 - docker push "$IMAGE_URI"
-                - printf '[{"name":"web","imageUri":"%s"}]' "$IMAGE_URI" > images.json
+                - herogate internal generate-template $APP_NAME $IMAGE_URI > platform.yaml
           artifacts:
-            files: images.json
+            files: platform.yaml
       Artifacts:
         Type: CODEPIPELINE
   HerogateBuilderRole:
@@ -296,6 +308,10 @@ Resources:
                   - ecr:InitiateLayerUpload
                   - ecr:UploadLayerPart
                   - ecr:CompleteLayerUpload
+              - Effect: Allow
+                Resource:
+                  Fn::Sub: arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}*
+                Action: cloudformation:GetTemplate
 
   # Deployer
   HerogateApplicationCluster:
@@ -445,6 +461,38 @@ Resources:
         - TargetGroupArn:
             Ref: HerogateLoadBalancerTargetGroup
           Type: forward
+  HerogateDeployerRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName:
+        Fn::Sub: "HerogateDeployerRole-${AWS::StackName}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudformation.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName:
+            Fn::Sub: "HerogateDeployerPolicy-${AWS::StackName}"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Resource: "*"
+                Action:
+                  - ec2:*
+                  - codepipeline:*
+                  - s3:*
+                  - iam:*
+                  - codecommit:*
+                  - ecr:*
+                  - codebuild:*
+                  - ecs:*
+                  - elasticloadbalancing:*
+                  - autoscaling:*
+                  - cloudwatch:*
 
 Outputs:
   Repository:

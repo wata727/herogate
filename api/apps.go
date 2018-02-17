@@ -94,7 +94,7 @@ func (c *Client) validateAppStatus(app *objects.App) {
 // This function calculates the proportion of resources that are "CREATE_COMPLETE".
 func (c *Client) GetAppCreationProgress(appName string) int {
 	// XXX: Count of resources of `assets/platform.yaml`
-	var totalResources = 26.0
+	var totalResources = 27.0
 
 	resp, err := c.cloudFormation.ListStackResources(&cloudformation.ListStackResourcesInput{
 		StackName: aws.String(appName),

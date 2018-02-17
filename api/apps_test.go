@@ -122,10 +122,10 @@ func TestGetAppCreationProgress(t *testing.T) {
 	client.cloudFormation = cfnMock
 
 	rate := client.GetAppCreationProgress("young-eyrie-24091")
-	// Total resources: 26, Created: 6
-	//   => (6 / 26) * 100 = 23.07...
-	if rate != 23 {
-		t.Fatalf("Expected progress rate is `23`, but get `%d`", rate)
+	// Total resources: 27, Created: 6
+	//   => (6 / 27) * 100 = 22.22...
+	if rate != 22 {
+		t.Fatalf("Expected progress rate is `22`, but get `%d`", rate)
 	}
 }
 
