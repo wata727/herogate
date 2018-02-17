@@ -110,12 +110,13 @@ Resources:
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
-                Provider: ECS
+                Provider: CloudFormation
                 Version: 1
               Configuration:
-                ClusterName: !Ref HerogateApplicationCluster
-                ServiceName: !GetAtt HerogateApplicationService.Name
-                FileName: images.json
+                StackName: !Ref AWS::StackName
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_NAMED_IAM
+                TemplatePath: HerogateBuild::platform.yaml
               InputArtifacts:
                 - Name: HerogateBuild
   HerogatePipelineArtifactStore:
@@ -357,6 +358,9 @@ Resources:
       Port: 80
       Protocol: HTTP
       VpcId: !Ref HerogateNetwork
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: 50
   HerogateLoadBalancerListener:
     Type: "AWS::ElasticLoadBalancingV2::Listener"
     Properties:
