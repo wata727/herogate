@@ -12,4 +12,5 @@ type ClientInterface interface {
 	GetAppCreationProgress(appName string) int
 	DescribeLogs(appName string, options *options.DescribeLogs) []*log.Log
 	GetApp(appName string) (*objects.App, error)
+	GetTemplate(appName string) string
 }

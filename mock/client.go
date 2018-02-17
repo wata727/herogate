@@ -83,3 +83,15 @@ func (m *MockClientInterface) GetApp(appName string) (*objects.App, error) {
 func (mr *MockClientInterfaceMockRecorder) GetApp(appName interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetApp", reflect.TypeOf((*MockClientInterface)(nil).GetApp), appName)
 }
+
+// GetTemplate mocks base method
+func (m *MockClientInterface) GetTemplate(appName string) string {
+	ret := m.ctrl.Call(m, "GetTemplate", appName)
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetTemplate indicates an expected call of GetTemplate
+func (mr *MockClientInterfaceMockRecorder) GetTemplate(appName interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTemplate", reflect.TypeOf((*MockClientInterface)(nil).GetTemplate), appName)
+}

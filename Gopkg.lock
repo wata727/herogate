@@ -114,6 +114,12 @@
   revision = "b8bc1bf767474819792c23f32d8286a45736f1c6"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/olebedev/config"
+  packages = ["."]
+  revision = "9a10d05a33a8b9e828f20491e21e8927dec35f72"
+
+[[projects]]
   name = "github.com/pelletier/go-buffruneio"
   packages = ["."]
   revision = "c37440a7cf42ac63b919c752ca73a85067e05992"
@@ -270,9 +276,15 @@
   revision = "ec4a0fea49c7b46c2aeb0b51aac55779c607e52b"
   version = "v0.1.2"
 
+[[projects]]
+  branch = "v2"
+  name = "gopkg.in/yaml.v2"
+  packages = ["."]
+  revision = "d670f9405373e636a5a2765eea47fac0c9bc91a4"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "be632bb78c067447ced48c1f3e4d94fb45c2e2c686dd8bc9e9227c6022433e52"
+  inputs-digest = "4398bc3c926ece94b9ab81f7e1054eb4bed71f9917ca695df0f92274b4562a28"
   solver-name = "gps-cdcl"
   solver-version = 1

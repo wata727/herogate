@@ -51,3 +51,7 @@
 [[constraint]]
   name = "github.com/Atrox/haikunatorgo"
   version = "2.0.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/olebedev/config"
