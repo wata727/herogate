@@ -38,6 +38,7 @@ func (c *Client) DescribeLogs(appName string, options *options.DescribeLogs) []*
 		}
 	}
 
+	// TODO: Keep original order in the same time
 	sort.Slice(logs, func(i, j int) bool {
 		return logs[i].Timestamp.Before(logs[j].Timestamp)
 	})

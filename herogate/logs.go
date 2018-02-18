@@ -69,15 +69,25 @@ func fetchNewLogs(ctx *logsContext, lastEventLog *log.Log) []*log.Log {
 		Process: ctx.ps,
 		Source:  ctx.source,
 	})
+
+	// When fetching at first, returns all logs
 	if lastEventLog == nil {
 		return eventLogs
 	}
 
+	// When fetching for the same build, returns new logs based on log ID
 	for i := len(eventLogs) - 1; i >= 0; i-- {
 		if lastEventLog.ID == eventLogs[i].ID {
 			return eventLogs[i+1:]
 		}
 	}
 
-	return []*log.Log{}
+	// When fetching for other builds, returns new logs based on timestamp
+	var latestLogs []*log.Log
+	for _, eventLog := range eventLogs {
+		if eventLog.Timestamp.After(lastEventLog.Timestamp) {
+			latestLogs = append(latestLogs, eventLog)
+		}
+	}
+	return latestLogs
 }
