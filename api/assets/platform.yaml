@@ -208,7 +208,24 @@ Resources:
     Properties:
       RepositoryName:
         Ref: AWS::StackName
-
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 10,
+                "description": "keep the count of images to 30",
+                "selection": {
+                  "tagStatus": "untagged",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 30
+                },
+                "action": {
+                  "type": "expire"
+                }
+              }
+            ]
+          }
 
   # Builder
   HerogateBuilder:
@@ -248,14 +265,17 @@ Resources:
                 - $(aws ecr get-login --no-include-email)
                 - TAG="$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | head -c 8)"
                 - IMAGE_URI="${REPOSITORY_URI}:${TAG}"
+                - docker pull "$REPOSITORY_URI" || true
                 - wget https://s3.amazonaws.com/wata727-releases/herogate
                 - install herogate /usr/local/bin
             build:
               commands:
-                - docker build --tag "$IMAGE_URI" .
+                - docker build --tag "$IMAGE_URI" --cache-from "$REPOSITORY_URI" .
             post_build:
               commands:
+                - docker tag "$IMAGE_URI" "$REPOSITORY_URI"
                 - docker push "$IMAGE_URI"
+                - docker push "$REPOSITORY_URI"
                 - herogate internal generate-template $APP_NAME $IMAGE_URI > platform.yaml
           artifacts:
             files: platform.yaml
