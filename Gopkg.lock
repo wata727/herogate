@@ -138,6 +138,12 @@
   version = "v1.0.4"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/skratchdot/open-golang"
+  packages = ["open"]
+  revision = "75fb7ed4208cf72d323d7d02fd1a5964a7a9073c"
+
+[[projects]]
   name = "github.com/src-d/gcfg"
   packages = [
     ".",
@@ -285,6 +291,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4398bc3c926ece94b9ab81f7e1054eb4bed71f9917ca695df0f92274b4562a28"
+  inputs-digest = "a5812349bcd045d6361740f33b7b46dc083740f4ae651836a33cf94f7cc853b6"
   solver-name = "gps-cdcl"
   solver-version = 1

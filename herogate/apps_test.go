@@ -137,3 +137,125 @@ func TestProcessAppsCreate__duplicateName(t *testing.T) {
 		t.Fatalf("Expected error is `%s`, but get `%s`", expected.Error(), err.Error())
 	}
 }
+
+func TestProcessAppsOpen(t *testing.T) {
+	var called bool
+	// Mock opening browser function
+	openBrowser = func(url string) error {
+		if url == "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com/" {
+			called = true
+		} else {
+			t.Fatalf("Expected arugument is `http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com/`, but get `%s`", url)
+		}
+		return nil
+	}
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	client := mock.NewMockClientInterface(ctrl)
+	// Expect to get application
+	client.EXPECT().GetApp("young-eyrie-24091").Return(&objects.App{
+		Name:       "young-eyrie-24091",
+		Status:     "CREATE_COMPLETE",
+		Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
+		Endpoint:   "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com/",
+	}, nil)
+
+	err := processAppsOpen(&appsOpenContext{
+		name:   "young-eyrie-24091",
+		path:   "",
+		client: client,
+	})
+	if err != nil {
+		t.Fatalf("Expected error is nil, but get `%s`", err.Error())
+	}
+
+	if !called {
+		t.Fatal("Expected to open browser, but does not")
+	}
+}
+
+func TestProcessAppsOpen__withPath(t *testing.T) {
+	var called bool
+	// Mock opening browser function
+	openBrowser = func(url string) error {
+		if url == "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com/foo/bar" {
+			called = true
+		} else {
+			t.Fatalf("Expected arugument is `http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com/foo/bar`, but get `%s`", url)
+		}
+		return nil
+	}
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	client := mock.NewMockClientInterface(ctrl)
+	// Expect to get application
+	client.EXPECT().GetApp("young-eyrie-24091").Return(&objects.App{
+		Name:       "young-eyrie-24091",
+		Status:     "CREATE_COMPLETE",
+		Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
+		Endpoint:   "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com/",
+	}, nil)
+
+	err := processAppsOpen(&appsOpenContext{
+		name:   "young-eyrie-24091",
+		path:   "foo/bar",
+		client: client,
+	})
+	if err != nil {
+		t.Fatalf("Expected error is nil, but get `%s`", err.Error())
+	}
+
+	if !called {
+		t.Fatal("Expected to open browser, but does not")
+	}
+}
+
+func TestProcessAppsOpen__invalidAppName(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	client := mock.NewMockClientInterface(ctrl)
+	// Expect to get application
+	client.EXPECT().GetApp("young-eyrie-24091").Return(nil, errors.New("Stack not found"))
+
+	err := processAppsOpen(&appsOpenContext{
+		name:   "young-eyrie-24091",
+		path:   "",
+		client: client,
+	})
+	if err.Error() != "ERROR: Application not found: young-eyrie-24091" {
+		t.Fatalf("Expected error is `ERROR: Application not found: young-eyrie-24091`, but get `%s`", err.Error())
+	}
+}
+
+func TestProcessAppsOpen__failedOpen(t *testing.T) {
+	// Mock opening browser function
+	openBrowser = func(url string) error {
+		return errors.New("Unexpected error occurred")
+	}
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	client := mock.NewMockClientInterface(ctrl)
+	// Expect to get application
+	client.EXPECT().GetApp("young-eyrie-24091").Return(&objects.App{
+		Name:       "young-eyrie-24091",
+		Status:     "CREATE_COMPLETE",
+		Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
+		Endpoint:   "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com/",
+	}, nil)
+
+	err := processAppsOpen(&appsOpenContext{
+		name:   "young-eyrie-24091",
+		path:   "",
+		client: client,
+	})
+	if err.Error() != "ERROR: Opening the app error: Unexpected error occurred" {
+		t.Fatalf("Expected error is `ERROR: Opening the app error: Unexpected error occurred`, but get `%s`", err.Error())
+	}
+}

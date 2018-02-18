@@ -3,12 +3,14 @@ package herogate
 import (
 	"fmt"
 	"io"
+	"net/url"
 	"regexp"
 	"time"
 
 	haikunator "github.com/Atrox/haikunatorgo"
 	"github.com/fatih/color"
 	"github.com/sirupsen/logrus"
+	"github.com/skratchdot/open-golang/open"
 	"github.com/urfave/cli"
 	"github.com/wata727/herogate/api"
 	"github.com/wata727/herogate/api/iface"
@@ -126,4 +128,62 @@ func writeCreationResult(appName string, v appsCreateOutput, w io.Writer) {
 	endpointColor := color.New(color.FgCyan)
 	repositoryColor := color.New(color.FgGreen)
 	fmt.Fprintf(w, "%s | %s\n", endpointColor.Sprint(v.endpoint), repositoryColor.Sprint(v.repository))
+}
+
+type appsOpenContext struct {
+	name   string
+	path   string
+	client iface.ClientInterface
+}
+
+var openBrowser = open.Run
+
+// AppsOpen opens the application endpoint on default browser.
+// If you pass a path, opens the endpoint with the path.
+func AppsOpen(ctx *cli.Context) error {
+	path := ctx.Args().First()
+	_, name := detectAppFromRepo()
+	if ctx.String("app") != "" {
+		logrus.Debug("Override application name: " + ctx.String("app"))
+		name = ctx.String("app")
+	}
+
+	return processAppsOpen(&appsOpenContext{
+		name: name,
+		path: path,
+		client: api.NewClient(&api.ClientOption{
+			Region: "us-east-1", // NOTE: Currently, Fargate supported region is only `us-east-1`
+		}),
+	})
+}
+
+func processAppsOpen(ctx *appsOpenContext) error {
+	app, err := ctx.client.GetApp(ctx.name)
+	if err != nil {
+		return cli.NewExitError(fmt.Sprintf("ERROR: Application not found: %s", ctx.name), 1)
+	}
+
+	endpoint, err := url.Parse(app.Endpoint)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"appName":  ctx.name,
+			"endpoint": app.Endpoint,
+		}).Fatal("Failed to parse endpoint URL: " + err.Error())
+	}
+	if ctx.path != "" {
+		endpoint, err = endpoint.Parse(ctx.path)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"appName":  ctx.name,
+				"endpoint": app.Endpoint,
+				"path":     ctx.path,
+			}).Fatal("Failed to parse endpoint path: " + err.Error())
+		}
+	}
+
+	err = openBrowser(endpoint.String())
+	if err != nil {
+		return cli.NewExitError("ERROR: Opening the app error: "+err.Error(), 1)
+	}
+	return nil
 }
