@@ -85,7 +85,7 @@ func validateAppName(ctx *appsCreateContext) error {
 		return fmt.Errorf("ERROR: The application name must match the pattern of `^[a-z0-9][a-z-0-9_\\-]+[a-z0-9]$`: %s", ctx.name)
 	}
 
-	if app, _ := ctx.client.GetApp(ctx.name); app != nil {
+	if _, err := ctx.client.GetApp(ctx.name); err == nil {
 		return fmt.Errorf("ERROR: The application name already exists")
 	}
 
