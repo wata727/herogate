@@ -147,6 +147,9 @@ func AppsOpen(ctx *cli.Context) error {
 		logrus.Debug("Override application name: " + ctx.String("app"))
 		name = ctx.String("app")
 	}
+	if name == "" {
+		return cli.NewExitError("ERROR: Missing require flag `-a`, You must specify application name", 1)
+	}
 
 	return processAppsOpen(&appsOpenContext{
 		name: name,
