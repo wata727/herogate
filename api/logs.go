@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/codebuild"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -17,9 +18,9 @@ import (
 // DescribeLogs returns the Herogate application logs.
 // In this function, it calls CodeBuild API, CloudWatchLogs API, and ECS Service API internally
 // and sorts logs by timestamps.
-func (c *Client) DescribeLogs(appName string, options *options.DescribeLogs) []*log.Log {
+func (c *Client) DescribeLogs(appName string, options *options.DescribeLogs) ([]*log.Log, error) {
 	if options == nil {
-		return []*log.Log{}
+		return []*log.Log{}, nil
 	}
 
 	var logs []*log.Log = []*log.Log{}
@@ -29,12 +30,27 @@ func (c *Client) DescribeLogs(appName string, options *options.DescribeLogs) []*
 	case log.HerogateSource:
 		switch options.Process {
 		case "":
-			logs = append(logs, c.describeBuilderLogs(appName)...)
-			logs = append(logs, c.describeDeployerLogs(appName)...)
+			builderLogs, err := c.describeBuilderLogs(appName)
+			if err != nil {
+				return []*log.Log{}, err
+			}
+			deployerLogs, err := c.describeDeployerLogs(appName)
+			if err != nil {
+				return []*log.Log{}, err
+			}
+			logs = append(builderLogs, deployerLogs...)
 		case log.BuilderProcess:
-			logs = append(logs, c.describeBuilderLogs(appName)...)
+			builderLogs, err := c.describeBuilderLogs(appName)
+			if err != nil {
+				return []*log.Log{}, err
+			}
+			logs = builderLogs
 		case log.DeployerProcess:
-			logs = append(logs, c.describeDeployerLogs(appName)...)
+			deployerLogs, err := c.describeDeployerLogs(appName)
+			if err != nil {
+				return []*log.Log{}, err
+			}
+			logs = deployerLogs
 		}
 	}
 
@@ -43,20 +59,24 @@ func (c *Client) DescribeLogs(appName string, options *options.DescribeLogs) []*
 		return logs[i].Timestamp.Before(logs[j].Timestamp)
 	})
 
-	return logs
+	return logs, nil
 }
 
-func (c *Client) describeBuilderLogs(appName string) []*log.Log {
+func (c *Client) describeBuilderLogs(appName string) ([]*log.Log, error) {
 	listBuildsForProjectResponse, err := c.codeBuild.ListBuildsForProject(&codebuild.ListBuildsForProjectInput{
 		ProjectName: aws.String(appName),
 	})
 	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == codebuild.ErrCodeResourceNotFoundException {
+			return []*log.Log{}, err
+		}
+
 		logrus.WithFields(logrus.Fields{
 			"ProjectName": appName,
 		}).Fatal("Failed to get the project: " + err.Error())
 	}
 	if len(listBuildsForProjectResponse.Ids) == 0 {
-		return []*log.Log{}
+		return []*log.Log{}, nil
 	}
 
 	buildID := listBuildsForProjectResponse.Ids[0]
@@ -69,7 +89,7 @@ func (c *Client) describeBuilderLogs(appName string) []*log.Log {
 		}).Fatal("Failed to get the build: " + err.Error())
 	}
 	if len(batchGetBuildsResponse.Builds) == 0 {
-		return []*log.Log{}
+		return []*log.Log{}, nil
 	}
 
 	group := batchGetBuildsResponse.Builds[0].Logs.GroupName
@@ -96,21 +116,25 @@ func (c *Client) describeBuilderLogs(appName string) []*log.Log {
 		})
 	}
 
-	return logs
+	return logs, nil
 }
 
-func (c *Client) describeDeployerLogs(appName string) []*log.Log {
+func (c *Client) describeDeployerLogs(appName string) ([]*log.Log, error) {
 	resp, err := c.ecs.DescribeServices(&ecs.DescribeServicesInput{
 		Cluster:  aws.String(appName),
 		Services: []*string{aws.String(appName)},
 	})
 	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == ecs.ErrCodeClusterNotFoundException {
+			return []*log.Log{}, err
+		}
+
 		logrus.WithFields(logrus.Fields{
 			"appName": appName,
 		}).Fatal("Failed to get the ECS service: " + err.Error())
 	}
 	if len(resp.Services) == 0 {
-		return []*log.Log{}
+		return []*log.Log{}, nil
 	}
 
 	var logs []*log.Log = []*log.Log{}
@@ -124,5 +148,5 @@ func (c *Client) describeDeployerLogs(appName string) []*log.Log {
 		})
 	}
 
-	return logs
+	return logs, nil
 }

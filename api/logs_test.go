@@ -1,10 +1,12 @@
 package api
 
 import (
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/codebuild"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -69,7 +71,10 @@ func TestDescribeLogs__noConfig(t *testing.T) {
 		},
 	}
 
-	logs := client.DescribeLogs("TestApp", &options.DescribeLogs{})
+	logs, err := client.DescribeLogs("TestApp", &options.DescribeLogs{})
+	if err != nil {
+		t.Fatalf("Expected error is nil, but get `%s`", err.Error())
+	}
 	if !cmp.Equal(expected, logs) {
 		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, logs))
 	}
@@ -129,7 +134,10 @@ func TestDescribeLogs__sourceHerogate(t *testing.T) {
 		},
 	}
 
-	logs := client.DescribeLogs("TestApp", &options.DescribeLogs{Source: "herogate"})
+	logs, err := client.DescribeLogs("TestApp", &options.DescribeLogs{Source: "herogate"})
+	if err != nil {
+		t.Fatalf("Expected error is nil, but get `%s`", err.Error())
+	}
 	if !cmp.Equal(expected, logs) {
 		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, logs))
 	}
@@ -160,7 +168,10 @@ func TestDescribeLogs__processBuilder(t *testing.T) {
 		},
 	}
 
-	logs := client.DescribeLogs("TestApp", &options.DescribeLogs{Process: "builder"})
+	logs, err := client.DescribeLogs("TestApp", &options.DescribeLogs{Process: "builder"})
+	if err != nil {
+		t.Fatalf("Expected error is nil, but get `%s`", err.Error())
+	}
 	if !cmp.Equal(expected, logs) {
 		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, logs))
 	}
@@ -204,7 +215,10 @@ func TestDescribeLogs__processDeployer(t *testing.T) {
 		},
 	}
 
-	logs := client.DescribeLogs("TestApp", &options.DescribeLogs{Process: "deployer"})
+	logs, err := client.DescribeLogs("TestApp", &options.DescribeLogs{Process: "deployer"})
+	if err != nil {
+		t.Fatalf("Expected error is nil, but get `%s`", err.Error())
+	}
 	if !cmp.Equal(expected, logs) {
 		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, logs))
 	}
@@ -235,10 +249,13 @@ func TestDescribeLogs__sourceHerogate__processBuilder(t *testing.T) {
 		},
 	}
 
-	logs := client.DescribeLogs("TestApp", &options.DescribeLogs{
+	logs, err := client.DescribeLogs("TestApp", &options.DescribeLogs{
 		Source:  "herogate",
 		Process: "builder",
 	})
+	if err != nil {
+		t.Fatalf("Expected error is nil, but get `%s`", err.Error())
+	}
 	if !cmp.Equal(expected, logs) {
 		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, logs))
 	}
@@ -282,10 +299,13 @@ func TestDescribeLogs__sourceHerogate__processDeployer(t *testing.T) {
 		},
 	}
 
-	logs := client.DescribeLogs("TestApp", &options.DescribeLogs{
+	logs, err := client.DescribeLogs("TestApp", &options.DescribeLogs{
 		Source:  "herogate",
 		Process: "deployer",
 	})
+	if err != nil {
+		t.Fatalf("Expected error is nil, but get `%s`", err.Error())
+	}
 	if !cmp.Equal(expected, logs) {
 		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, logs))
 	}
@@ -299,7 +319,10 @@ func TestDescribeLogs__sourceInvalid(t *testing.T) {
 
 	expected := []*log.Log{}
 
-	logs := client.DescribeLogs("TestApp", &options.DescribeLogs{Source: "invalid"})
+	logs, err := client.DescribeLogs("TestApp", &options.DescribeLogs{Source: "invalid"})
+	if err != nil {
+		t.Fatalf("Expected error is nil, but get `%s`", err.Error())
+	}
 	if !cmp.Equal(expected, logs) {
 		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, logs))
 	}
@@ -313,7 +336,10 @@ func TestDescribeLogs__processInvalid(t *testing.T) {
 
 	expected := []*log.Log{}
 
-	logs := client.DescribeLogs("TestApp", &options.DescribeLogs{Process: "invalid"})
+	logs, err := client.DescribeLogs("TestApp", &options.DescribeLogs{Process: "invalid"})
+	if err != nil {
+		t.Fatalf("Expected error is nil, but get `%s`", err.Error())
+	}
 	if !cmp.Equal(expected, logs) {
 		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, logs))
 	}
@@ -327,15 +353,57 @@ func TestDescribeLogs__sourceHerogate__processInvalid(t *testing.T) {
 
 	expected := []*log.Log{}
 
-	logs := client.DescribeLogs("TestApp", &options.DescribeLogs{
+	logs, err := client.DescribeLogs("TestApp", &options.DescribeLogs{
 		Source:  "herogate",
 		Process: "invalid",
 	})
+	if err != nil {
+		t.Fatalf("Expected error is nil, but get `%s`", err.Error())
+	}
 	if !cmp.Equal(expected, logs) {
 		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, logs))
 	}
 }
 
+func TestDescribeLogs__projectNotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	client := NewClient(&ClientOption{})
+	client.codeBuild = mockCodeBuildNotFound(ctrl)
+
+	expected := []*log.Log{}
+
+	logs, err := client.DescribeLogs("TestApp", &options.DescribeLogs{})
+	if err == nil {
+		t.Fatalf("Expected error is ErrCodeResourceNotFoundException, but get `%s`", err.Error())
+	}
+	if !cmp.Equal(expected, logs) {
+		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, logs))
+	}
+}
+
+func TestDescribeLogs__serviceNotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	client := NewClient(&ClientOption{})
+	client.codeBuild = mockCodeBuild(ctrl)
+	client.cloudWatchLogs = mockCloudWatchLogs(ctrl)
+	client.ecs = mockECSNotFound(ctrl)
+
+	expected := []*log.Log{}
+
+	logs, err := client.DescribeLogs("TestApp", &options.DescribeLogs{})
+	if err == nil {
+		t.Fatalf("Expected error is ErrCodeClusterNotFoundException, but get `%s`", err.Error())
+	}
+	if !cmp.Equal(expected, logs) {
+		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, logs))
+	}
+}
+
+// Mock functions
 func mockCodeBuild(ctrl *gomock.Controller) *mock.MockCodeBuildAPI {
 	codeBuildMock := mock.NewMockCodeBuildAPI(ctrl)
 
@@ -363,6 +431,16 @@ func mockCodeBuild(ctrl *gomock.Controller) *mock.MockCodeBuildAPI {
 			},
 		},
 	}, nil)
+
+	return codeBuildMock
+}
+
+func mockCodeBuildNotFound(ctrl *gomock.Controller) *mock.MockCodeBuildAPI {
+	codeBuildMock := mock.NewMockCodeBuildAPI(ctrl)
+
+	codeBuildMock.EXPECT().ListBuildsForProject(&codebuild.ListBuildsForProjectInput{
+		ProjectName: aws.String("TestApp"),
+	}).Return(nil, awserr.New(codebuild.ErrCodeResourceNotFoundException, "Not found", errors.New("Not found")))
 
 	return codeBuildMock
 }
@@ -425,6 +503,18 @@ func mockECS(ctrl *gomock.Controller) *mock.MockECSAPI {
 			},
 		},
 	}, nil)
+
+	return ecsMock
+}
+
+func mockECSNotFound(ctrl *gomock.Controller) *mock.MockECSAPI {
+	ecsMock := mock.NewMockECSAPI(ctrl)
+
+	// Mock ecs.DescribeServices
+	ecsMock.EXPECT().DescribeServices(&ecs.DescribeServicesInput{
+		Cluster:  aws.String("TestApp"),
+		Services: []*string{aws.String("TestApp")},
+	}).Return(nil, awserr.New(ecs.ErrCodeClusterNotFoundException, "Not found", errors.New("Not found")))
 
 	return ecsMock
 }

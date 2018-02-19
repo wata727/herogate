@@ -60,10 +60,11 @@ func (mr *MockClientInterfaceMockRecorder) GetAppCreationProgress(appName interf
 }
 
 // DescribeLogs mocks base method
-func (m *MockClientInterface) DescribeLogs(appName string, options *options.DescribeLogs) []*log.Log {
+func (m *MockClientInterface) DescribeLogs(appName string, options *options.DescribeLogs) ([]*log.Log, error) {
 	ret := m.ctrl.Call(m, "DescribeLogs", appName, options)
 	ret0, _ := ret[0].([]*log.Log)
-	return ret0
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // DescribeLogs indicates an expected call of DescribeLogs

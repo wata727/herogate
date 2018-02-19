@@ -2,6 +2,7 @@ package herogate
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -49,9 +50,9 @@ func TestProcessLogs(t *testing.T) {
 			Process:   "ps",
 			Message:   "baz message",
 		},
-	})
+	}, nil)
 
-	processLogs(&logsContext{
+	err := processLogs(&logsContext{
 		name:   "fargateTest",
 		app:    app,
 		client: client,
@@ -60,6 +61,9 @@ func TestProcessLogs(t *testing.T) {
 		source: "source",
 		tail:   false,
 	})
+	if err != nil {
+		t.Fatalf("Expected error is nil, but get `%s`", err.Error())
+	}
 
 	herogateColor := color.New(color.FgGreen)
 	log1Timestamps := herogateColor.Sprint("2018-02-02T11:00:09Z")
@@ -71,6 +75,30 @@ func TestProcessLogs(t *testing.T) {
 
 	if writer.String() != expected {
 		t.Fatalf("\nExpected: %s\nActual: %s", expected, writer.String())
+	}
+}
+
+func TestProcessLogs__invalidAppName(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	client := mock.NewMockClientInterface(ctrl)
+	client.EXPECT().DescribeLogs("invalidApp", &options.DescribeLogs{
+		Process: "ps",
+		Source:  "source",
+	}).Return([]*log.Log{}, errors.New("Not Found"))
+
+	err := processLogs(&logsContext{
+		name:   "invalidApp",
+		app:    cli.NewApp(),
+		client: client,
+		num:    2,
+		ps:     "ps",
+		source: "source",
+		tail:   false,
+	})
+	if err.Error() != "ERROR: Application not found: invalidApp" {
+		t.Fatalf("Expected error is `ERROR: Application not found: invalidApp`, but get `%s`", err.Error())
 	}
 }
 
@@ -105,9 +133,9 @@ func TestFetchNewLogs(t *testing.T) {
 	client.EXPECT().DescribeLogs("fargateTest", &options.DescribeLogs{
 		Process: "ps",
 		Source:  "source",
-	}).Return(newLogs)
+	}).Return(newLogs, nil)
 
-	logs := fetchNewLogs(&logsContext{
+	logs, err := fetchNewLogs(&logsContext{
 		name:   "fargateTest",
 		app:    cli.NewApp(),
 		client: client,
@@ -117,6 +145,9 @@ func TestFetchNewLogs(t *testing.T) {
 		tail:   false,
 	}, nil)
 
+	if err != nil {
+		t.Fatalf("Expected error is nil, but get `%s`", err.Error())
+	}
 	if !cmp.Equal(newLogs, logs) {
 		t.Fatalf("\nDiff: %s\n", cmp.Diff(newLogs, logs))
 	}
@@ -152,9 +183,9 @@ func TestFetchNewLogs__fetchingForTheSameBuild(t *testing.T) {
 			Process:   "ps",
 			Message:   "baz message",
 		},
-	})
+	}, nil)
 
-	logs := fetchNewLogs(&logsContext{
+	logs, err := fetchNewLogs(&logsContext{
 		name:   "fargateTest",
 		app:    cli.NewApp(),
 		client: client,
@@ -169,6 +200,9 @@ func TestFetchNewLogs__fetchingForTheSameBuild(t *testing.T) {
 		Process:   "ps",
 		Message:   "bar message",
 	})
+	if err != nil {
+		t.Fatalf("Expected error is nil, but get `%s`", err.Error())
+	}
 
 	expected := []*log.Log{
 		{
@@ -214,9 +248,9 @@ func TestFetchNewLogs__fetchingForOtherBuilds(t *testing.T) {
 			Process:   "ps",
 			Message:   "baz message",
 		},
-	})
+	}, nil)
 
-	logs := fetchNewLogs(&logsContext{
+	logs, err := fetchNewLogs(&logsContext{
 		name:   "fargateTest",
 		app:    cli.NewApp(),
 		client: client,
@@ -231,6 +265,9 @@ func TestFetchNewLogs__fetchingForOtherBuilds(t *testing.T) {
 		Process:   "ps",
 		Message:   "hoge message",
 	})
+	if err != nil {
+		t.Fatalf("Expected error is nil, but get `%s`", err.Error())
+	}
 
 	expected := []*log.Log{
 		{
