@@ -96,3 +96,15 @@ func (m *MockClientInterface) GetTemplate(appName string) string {
 func (mr *MockClientInterfaceMockRecorder) GetTemplate(appName interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTemplate", reflect.TypeOf((*MockClientInterface)(nil).GetTemplate), appName)
 }
+
+// DestroyApp mocks base method
+func (m *MockClientInterface) DestroyApp(appName string) error {
+	ret := m.ctrl.Call(m, "DestroyApp", appName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DestroyApp indicates an expected call of DestroyApp
+func (mr *MockClientInterfaceMockRecorder) DestroyApp(appName interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DestroyApp", reflect.TypeOf((*MockClientInterface)(nil).DestroyApp), appName)
+}

@@ -13,4 +13,5 @@ type ClientInterface interface {
 	DescribeLogs(appName string, options *options.DescribeLogs) ([]*log.Log, error)
 	GetApp(appName string) (*objects.App, error)
 	GetTemplate(appName string) string
+	DestroyApp(appName string) error
 }

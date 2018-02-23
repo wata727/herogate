@@ -5,6 +5,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/ecr"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/sirupsen/logrus"
 	"github.com/wata727/herogate/api/assets"
 	"github.com/wata727/herogate/api/objects"
@@ -156,4 +158,99 @@ func (c *Client) GetApp(appName string) (*objects.App, error) {
 		Repository: repository,
 		Endpoint:   "http://" + endpoint, // ALB endpoint DNS doesn't contain schema
 	}, nil
+}
+
+// DestroyApp destroys resources in the following order:
+//
+// - S3 Bucket
+// - ECR Repository
+// - CloudFormation Stack
+//
+// This function waits until stack deletion complete.
+func (c *Client) DestroyApp(appName string) error {
+	if _, err := c.GetApp(appName); err != nil {
+		return err
+	}
+
+	// At first, delete S3 bucket because if the bucket is not empty, DeleteStack is failed.
+	s3Resource, err := c.cloudFormation.DescribeStackResource(&cloudformation.DescribeStackResourceInput{
+		StackName:         aws.String(appName),
+		LogicalResourceId: aws.String("HerogatePipelineArtifactStore"),
+	})
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"appName": appName,
+		}).Fatalf("Failed to get S3 bucket: " + err.Error())
+	}
+	_, err = c.s3.DeleteBucket(&s3.DeleteBucketInput{
+		Bucket: s3Resource.StackResourceDetail.PhysicalResourceId,
+	})
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"appName": appName,
+		}).Fatalf("Failed to delete S3 bucket: " + err.Error())
+	}
+
+	// After that, delete ECR because if images exist, DeleteStack is failed.
+	ecrResource, err := c.cloudFormation.DescribeStackResource(&cloudformation.DescribeStackResourceInput{
+		StackName:         aws.String(appName),
+		LogicalResourceId: aws.String("HerogateRegistry"),
+	})
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"appName": appName,
+		}).Fatalf("Failed to get ECR repository: " + err.Error())
+	}
+	_, err = c.ecr.DeleteRepository(&ecr.DeleteRepositoryInput{
+		Force:          aws.Bool(true),
+		RepositoryName: ecrResource.StackResourceDetail.PhysicalResourceId,
+	})
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"appName": appName,
+		}).Fatalf("Failed to delete ECR repository: " + err.Error())
+	}
+
+	// At last, delete CloudFormation stack.
+	_, err = c.cloudFormation.DeleteStack(&cloudformation.DeleteStackInput{
+		StackName: aws.String(appName),
+	})
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"appName": appName,
+		}).Fatal("Failed to request for deleting stack: " + err.Error())
+	}
+	err = c.cloudFormation.WaitUntilStackDeleteComplete(&cloudformation.DescribeStacksInput{
+		StackName: aws.String(appName),
+	})
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"appName": appName,
+		}).Fatal("Failed to wait stack deletion: " + err.Error())
+	}
+
+	app, err := c.GetApp(appName)
+	if err != nil {
+		// Deletion success!
+		return nil
+	}
+
+	// If it can get the application, check status
+	if app.Status != "DELETE_COMPLETE" {
+		resourcesResp, err := c.cloudFormation.ListStackResources(&cloudformation.ListStackResourcesInput{
+			StackName: aws.String(app.Name),
+		})
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"appName": app.Name,
+			}).Fatal("Failed to get failed stack resources: " + err.Error())
+		}
+
+		logrus.WithFields(logrus.Fields{
+			"appName":   app.Name,
+			"summaries": resourcesResp.StackResourceSummaries,
+		}).Fatal("Failed to stack creation.")
+	}
+
+	return nil
 }

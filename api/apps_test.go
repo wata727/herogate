@@ -6,6 +6,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/ecr"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/wata727/herogate/api/assets"
@@ -191,5 +193,104 @@ func TestGetApp__notFound(t *testing.T) {
 	}
 	if app != nil {
 		t.Fatal("Expected app is nil, but get app")
+	}
+}
+
+func TestDestroyApp(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	cfnMock := mock.NewMockCloudFormationAPI(ctrl)
+	s3Mock := mock.NewMockS3API(ctrl)
+	ecrMock := mock.NewMockECRAPI(ctrl)
+
+	// Expect to call GetApp and return App
+	cfnMock.EXPECT().DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String("young-eyrie-24091"),
+	}).Return(&cloudformation.DescribeStacksOutput{
+		Stacks: []*cloudformation.Stack{
+			{
+				StackStatus: aws.String("CREATE_COMPLETE"),
+				Outputs: []*cloudformation.Output{
+					{
+						OutputKey:   aws.String("Repository"),
+						OutputValue: aws.String("ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091"),
+					},
+					{
+						OutputKey:   aws.String("Endpoint"),
+						OutputValue: aws.String("young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com"),
+					},
+				},
+			},
+		},
+	}, nil)
+	// Expect to describe S3 resource
+	cfnMock.EXPECT().DescribeStackResource(&cloudformation.DescribeStackResourceInput{
+		StackName:         aws.String("young-eyrie-24091"),
+		LogicalResourceId: aws.String("HerogatePipelineArtifactStore"),
+	}).Return(&cloudformation.DescribeStackResourceOutput{
+		StackResourceDetail: &cloudformation.StackResourceDetail{
+			PhysicalResourceId: aws.String("herogate-12345678-us-east-1-young-eyrie-24091"),
+		},
+	}, nil)
+	// Expect to delete S3 bucket
+	s3Mock.EXPECT().DeleteBucket(&s3.DeleteBucketInput{
+		Bucket: aws.String("herogate-12345678-us-east-1-young-eyrie-24091"),
+	}).Return(&s3.DeleteBucketOutput{}, nil)
+	// Expect to describe ECR resource
+	cfnMock.EXPECT().DescribeStackResource(&cloudformation.DescribeStackResourceInput{
+		StackName:         aws.String("young-eyrie-24091"),
+		LogicalResourceId: aws.String("HerogateRegistry"),
+	}).Return(&cloudformation.DescribeStackResourceOutput{
+		StackResourceDetail: &cloudformation.StackResourceDetail{
+			PhysicalResourceId: aws.String("young-eyrie-24091"),
+		},
+	}, nil)
+	// Expect to delete ECR repository
+	ecrMock.EXPECT().DeleteRepository(&ecr.DeleteRepositoryInput{
+		Force:          aws.Bool(true),
+		RepositoryName: aws.String("young-eyrie-24091"),
+	}).Return(&ecr.DeleteRepositoryOutput{}, nil)
+	// Expect to delete CFn stack
+	cfnMock.EXPECT().DeleteStack(&cloudformation.DeleteStackInput{
+		StackName: aws.String("young-eyrie-24091"),
+	}).Do(func(input *cloudformation.DeleteStackInput) {
+		// Expect to call GetApp and return error
+		cfnMock.EXPECT().DescribeStacks(&cloudformation.DescribeStacksInput{
+			StackName: aws.String("young-eyrie-24091"),
+		}).Return(nil, errors.New("stack not found"))
+	}).Return(&cloudformation.DeleteStackOutput{}, nil)
+	// Expect to wait stack deletion
+	cfnMock.EXPECT().WaitUntilStackDeleteComplete(&cloudformation.DescribeStacksInput{
+		StackName: aws.String("young-eyrie-24091"),
+	}).Return(nil)
+
+	client := NewClient(&ClientOption{})
+	client.cloudFormation = cfnMock
+	client.s3 = s3Mock
+	client.ecr = ecrMock
+
+	err := client.DestroyApp("young-eyrie-24091")
+	if err != nil {
+		t.Fatalf("Expected error is nil, but get `%s`", err.Error())
+	}
+}
+
+func TestDestroyApp__notFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	cfnMock := mock.NewMockCloudFormationAPI(ctrl)
+	cfnMock.EXPECT().DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String("young-eyrie-24091"),
+	}).Return(nil, errors.New("stack not found"))
+
+	client := NewClient(&ClientOption{})
+	client.cloudFormation = cfnMock
+
+	err := client.DestroyApp("young-eyrie-24091")
+
+	if err == nil {
+		t.Fatal("Expected error is not nil, but get nil as error")
 	}
 }
