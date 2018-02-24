@@ -27,16 +27,19 @@ var fetchLogsInterval = 5 * time.Second
 
 // Logs retrieves logs from builder, deployer, and app containers.
 func Logs(ctx *cli.Context) error {
-	region, name := detectAppFromRepo()
+	// NOTE: Does not use region because Fargate supported region is only 'us-east-1'
+	_, name := detectAppFromRepo()
 	if ctx.String("app") != "" {
 		logrus.Debug("Override application name: " + ctx.String("app"))
 		name = ctx.String("app")
 	}
 
 	return processLogs(&logsContext{
-		name:   name,
-		app:    ctx.App,
-		client: api.NewClient(&api.ClientOption{Region: region}),
+		name: name,
+		app:  ctx.App,
+		client: api.NewClient(&api.ClientOption{
+			Region: "us-east-1", // NOTE: Currently, Fargate supported region is only `us-east-1`
+		}),
 		num:    ctx.Int("num"),
 		ps:     ctx.String("ps"),
 		source: ctx.String("source"),
