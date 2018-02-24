@@ -275,3 +275,45 @@ func (c *Client) GetAppDeletionProgress(appName string) int {
 
 	return int((float64(deleted) / totalResources) * 100)
 }
+
+// ListApps returns applications.
+func (c *Client) ListApps() []*objects.App {
+	resp, err := c.cloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{})
+	if err != nil {
+		logrus.Fatal("Failed to describe stacks.")
+	}
+
+	apps := []*objects.App{}
+	var repository, endpoint string
+
+	for _, stack := range resp.Stacks {
+		for _, output := range stack.Outputs {
+			switch aws.StringValue(output.OutputKey) {
+			case "Repository":
+				repository = aws.StringValue(output.OutputValue)
+			case "Endpoint":
+				endpoint = aws.StringValue(output.OutputValue)
+			}
+		}
+
+		if aws.StringValue(stack.StackStatus) == "CREATE_COMPLETE" {
+			if repository == "" || endpoint == "" {
+				logrus.WithFields(logrus.Fields{
+					"appName":    aws.StringValue(stack.StackName),
+					"repository": repository,
+					"endpoint":   endpoint,
+					"outputs":    stack.Outputs,
+				}).Fatal("Expected outputs are not found.")
+			}
+
+			apps = append(apps, &objects.App{
+				Name:       aws.StringValue(stack.StackName),
+				Status:     aws.StringValue(stack.StackStatus),
+				Repository: repository,
+				Endpoint:   "http://" + endpoint, // ALB endpoint DNS doesn't contain schema
+			})
+		}
+	}
+
+	return apps
+}

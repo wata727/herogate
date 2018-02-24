@@ -35,6 +35,18 @@ func (m *MockClientInterface) EXPECT() *MockClientInterfaceMockRecorder {
 	return m.recorder
 }
 
+// ListApps mocks base method
+func (m *MockClientInterface) ListApps() []*objects.App {
+	ret := m.ctrl.Call(m, "ListApps")
+	ret0, _ := ret[0].([]*objects.App)
+	return ret0
+}
+
+// ListApps indicates an expected call of ListApps
+func (mr *MockClientInterfaceMockRecorder) ListApps() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListApps", reflect.TypeOf((*MockClientInterface)(nil).ListApps))
+}
+
 // CreateApp mocks base method
 func (m *MockClientInterface) CreateApp(appName string) *objects.App {
 	ret := m.ctrl.Call(m, "CreateApp", appName)
