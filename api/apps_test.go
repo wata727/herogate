@@ -355,7 +355,7 @@ func TestGetAppDeletionProgress__notFound(t *testing.T) {
 	cfnMock := mock.NewMockCloudFormationAPI(ctrl)
 	cfnMock.EXPECT().ListStackResources(&cloudformation.ListStackResourcesInput{
 		StackName: aws.String("young-eyrie-24091"),
-	}).Return(nil, errors.New("Stack not found."))
+	}).Return(nil, errors.New("stack not found"))
 
 	client := NewClient(&ClientOption{})
 	client.cloudFormation = cfnMock
