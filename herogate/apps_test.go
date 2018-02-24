@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	git "gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/config"
 
 	"github.com/fatih/color"
 	"github.com/golang/mock/gomock"
@@ -257,5 +259,227 @@ func TestProcessAppsOpen__failedOpen(t *testing.T) {
 	})
 	if err.Error() != "ERROR: Opening the app error: Unexpected error occurred" {
 		t.Fatalf("Expected error is `ERROR: Opening the app error: Unexpected error occurred`, but get `%s`", err.Error())
+	}
+}
+
+func TestProcessAppsDestroy(t *testing.T) {
+	currentDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal("Failed to get current directory: " + err.Error())
+	}
+	defer os.Chdir(currentDir)
+
+	dir, err := ioutil.TempDir("", "TestProcessAppsDestroy")
+	if err != nil {
+		t.Fatal("Failed to create tempdir: " + err.Error())
+	}
+	defer os.RemoveAll(dir)
+
+	repo, err := git.PlainInit(dir, false)
+	if err != nil {
+		t.Fatal("Failed to init git reporisoty: " + err.Error())
+	}
+	_, err = repo.CreateRemote(&config.RemoteConfig{
+		Name: "herogate",
+		URLs: []string{"ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091"},
+	})
+	if err != nil {
+		t.Fatal("Failed to create remote: " + err.Error())
+	}
+
+	err = os.Chdir(dir)
+	if err != nil {
+		t.Fatal("Failed to change directory: " + err.Error())
+	}
+
+	// Wait only 1 second
+	progressCheckInterval = 1 * time.Second
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	app := cli.NewApp()
+	writer := new(bytes.Buffer)
+	app.Writer = writer
+
+	client := mock.NewMockClientInterface(ctrl)
+	// Expect to get application
+	client.EXPECT().GetApp("young-eyrie-24091").Return(&objects.App{
+		Name:       "young-eyrie-24091",
+		Status:     "CREATE_COMPLETE",
+		Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
+		Endpoint:   "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com/",
+	}, nil)
+	// Expect to destroy application
+	client.EXPECT().DestroyApp("young-eyrie-24091").Return(nil)
+	// Allow to get progress rate
+	client.EXPECT().GetAppDeletionProgress("young-eyrie-24091").Return(100).AnyTimes()
+
+	err = processAppsDestroy(&appsDestroyContext{
+		name:    "young-eyrie-24091",
+		app:     app,
+		confirm: "young-eyrie-24091",
+		client:  client,
+	})
+	if err != nil {
+		t.Fatalf("Expected error is nil, but get `%s`", err.Error())
+	}
+
+	expectedApp := fmt.Sprintf("Destroying %s... done\n", color.New(color.FgMagenta).Sprint("⬢ young-eyrie-24091"))
+
+	if !strings.Contains(writer.String(), expectedApp) {
+		t.Fatalf("Expected application outputs are not contained:\nExpected: %s\nActual: %s", expectedApp, writer.String())
+	}
+
+	remotes, err := repo.Remotes()
+	if err != nil {
+		t.Fatal("Failed to load remote config: " + err.Error())
+	}
+	for _, remote := range remotes {
+		if remote.Config().Name == "herogate" {
+			t.Fatal("Failed to delete remote")
+		}
+	}
+}
+
+func TestProcessAppsDestroy__notFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	app := cli.NewApp()
+	writer := new(bytes.Buffer)
+	app.Writer = writer
+
+	client := mock.NewMockClientInterface(ctrl)
+	// Expect to get application
+	client.EXPECT().GetApp("young-eyrie-24091").Return(nil, errors.New("stack not found"))
+
+	err := processAppsDestroy(&appsDestroyContext{
+		name:    "young-eyrie-24091",
+		app:     app,
+		confirm: "young-eyrie-24091",
+		client:  client,
+	})
+
+	expected := fmt.Sprintf("%s    Couldn't find that app.", color.New(color.FgRed).Sprint("▸"))
+	if err.Error() != expected {
+		t.Fatalf("Expected error is `%s`, but get `%s`", expected, err.Error())
+	}
+}
+
+func TestProcessAppsDestroy__confirmationFailed(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	app := cli.NewApp()
+	writer := new(bytes.Buffer)
+	app.Writer = writer
+
+	client := mock.NewMockClientInterface(ctrl)
+	// Expect to get application
+	client.EXPECT().GetApp("young-eyrie-24091").Return(&objects.App{
+		Name:       "young-eyrie-24091",
+		Status:     "CREATE_COMPLETE",
+		Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
+		Endpoint:   "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com/",
+	}, nil)
+
+	err := processAppsDestroy(&appsDestroyContext{
+		name:    "young-eyrie-24091",
+		app:     app,
+		confirm: "young-eyrie",
+		client:  client,
+	})
+
+	errorColor := color.New(color.FgRed)
+	expected := fmt.Sprintf("%s    Confirmation did not match %s. Aborted.", errorColor.Sprint("▸"), errorColor.Sprint("young-eyrie-24091"))
+	if err.Error() != expected {
+		t.Fatalf("Expected error is `%s`, but get `%s`", expected, err.Error())
+	}
+}
+
+func TestProcessAppsDestroy__withConfirmation(t *testing.T) {
+	currentDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal("Failed to get current directory: " + err.Error())
+	}
+	defer os.Chdir(currentDir)
+
+	dir, err := ioutil.TempDir("", "TestProcessAppsDestroy")
+	if err != nil {
+		t.Fatal("Failed to create tempdir: " + err.Error())
+	}
+	defer os.RemoveAll(dir)
+
+	repo, err := git.PlainInit(dir, false)
+	if err != nil {
+		t.Fatal("Failed to init git reporisoty: " + err.Error())
+	}
+	_, err = repo.CreateRemote(&config.RemoteConfig{
+		Name: "herogate",
+		URLs: []string{"ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091"},
+	})
+	if err != nil {
+		t.Fatal("Failed to create remote: " + err.Error())
+	}
+
+	err = os.Chdir(dir)
+	if err != nil {
+		t.Fatal("Failed to change directory: " + err.Error())
+	}
+
+	// Wait only 1 second
+	progressCheckInterval = 1 * time.Second
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	app := cli.NewApp()
+	writer := new(bytes.Buffer)
+	app.Writer = writer
+
+	client := mock.NewMockClientInterface(ctrl)
+	// Expect to get application
+	client.EXPECT().GetApp("young-eyrie-24091").Return(&objects.App{
+		Name:       "young-eyrie-24091",
+		Status:     "CREATE_COMPLETE",
+		Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
+		Endpoint:   "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com/",
+	}, nil)
+	// Expect to destroy application
+	client.EXPECT().DestroyApp("young-eyrie-24091").Return(nil)
+	// Allow to get progress rate
+	client.EXPECT().GetAppDeletionProgress("young-eyrie-24091").Return(100).AnyTimes()
+
+	// Write app name to os.Stdin
+	r, w := io.Pipe()
+	defer w.Close()
+	stdin = r
+	go func() {
+		fmt.Fprintln(w, "young-eyrie-24091")
+	}()
+
+	err = processAppsDestroy(&appsDestroyContext{
+		name:    "young-eyrie-24091",
+		app:     app,
+		confirm: "",
+		client:  client,
+	})
+	if err != nil {
+		t.Fatalf("Expected error is nil, but get `%s`", err.Error())
+	}
+
+	expectedApp := fmt.Sprintf("Destroying %s... done\n", color.New(color.FgMagenta).Sprint("⬢ young-eyrie-24091"))
+
+	if !strings.Contains(writer.String(), expectedApp) {
+		t.Fatalf("Expected application outputs are not contained:\nExpected: %s\nActual: %s", expectedApp, writer.String())
+	}
+
+	remotes, err := repo.Remotes()
+	if err != nil {
+		t.Fatal("Failed to load remote config: " + err.Error())
+	}
+	for _, remote := range remotes {
+		if remote.Config().Name == "herogate" {
+			t.Fatal("Failed to delete remote")
+		}
 	}
 }

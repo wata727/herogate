@@ -1,10 +1,13 @@
 package herogate
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"net/url"
+	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	haikunator "github.com/Atrox/haikunatorgo"
@@ -189,4 +192,130 @@ func processAppsOpen(ctx *appsOpenContext) error {
 		return cli.NewExitError("ERROR: Opening the app error: "+err.Error(), 1)
 	}
 	return nil
+}
+
+type appsDestroyContext struct {
+	name    string
+	app     *cli.App
+	confirm string
+	client  iface.ClientInterface
+}
+
+var stdin io.Reader = os.Stdin
+
+// AppsDestroy destroys the application.
+// After that, it removes herogate remote from local git repository.
+func AppsDestroy(ctx *cli.Context) error {
+	_, name := detectAppFromRepo()
+	if ctx.String("app") != "" {
+		logrus.Debug("Override application name: " + ctx.String("app"))
+		name = ctx.String("app")
+	}
+	if ctx.Args().First() != "" {
+		logrus.Debug("Override application name: " + ctx.Args().First())
+		name = ctx.Args().First()
+	}
+	if name == "" {
+		return cli.NewExitError(
+			fmt.Sprintf(
+				"%s    No app specified.\n%s    USAGE: herogate apps:destroy APPNAME",
+				color.New(color.FgRed).Sprint("▸"),
+				color.New(color.FgRed).Sprint("▸"),
+			),
+			1,
+		)
+	}
+
+	return processAppsDestroy(&appsDestroyContext{
+		name:    name,
+		app:     ctx.App,
+		confirm: ctx.String("confirm"),
+		client: api.NewClient(&api.ClientOption{
+			Region: "us-east-1", // NOTE: Currently, Fargate supported region is only `us-east-1`
+		}),
+	})
+}
+
+func processAppsDestroy(ctx *appsDestroyContext) error {
+	_, err := ctx.client.GetApp(ctx.name)
+	if err != nil {
+		return cli.NewExitError(fmt.Sprintf("%s    Couldn't find that app.", color.New(color.FgRed).Sprint("▸")), 1)
+	}
+
+	if err = confirmAppDeletion(ctx); err != nil {
+		return err
+	}
+
+	ch := make(chan error, 1)
+	go func() {
+		ch <- ctx.client.DestroyApp(ctx.name)
+	}()
+
+	r, w := io.Pipe()
+	go func() {
+		defer w.Close()
+		fmt.Fprintf(w, "Destroying %s... %d%%\r", color.New(color.FgMagenta).Sprintf("⬢ %s", ctx.name), 0)
+		waitDeletionAndWriteProgress(ctx, w, ch)
+	}()
+
+	io.Copy(ctx.app.Writer, r)
+
+	return nil
+}
+
+func confirmAppDeletion(ctx *appsDestroyContext) error {
+	warnColor := color.New(color.FgYellow)
+	errorColor := color.New(color.FgRed)
+	appColor := color.New(color.FgMagenta)
+
+	name := ctx.confirm
+
+	if name == "" {
+		fmt.Fprintf(ctx.app.Writer, "%s    WARNING: This will delete %s\n", warnColor.Sprint("▸"), appColor.Sprintf("⬢ %s", ctx.name))
+		fmt.Fprintf(ctx.app.Writer, "%s    To proceed, type %s or re-run this command with\n", warnColor.Sprint("▸"), errorColor.Sprint(ctx.name))
+		fmt.Fprintf(ctx.app.Writer, "%s    %s\n\n", warnColor.Sprint("▸"), errorColor.Sprintf("--confirm %s", ctx.name))
+		fmt.Fprint(ctx.app.Writer, "> ")
+
+		scanner := bufio.NewScanner(stdin)
+		scanner.Scan()
+		name = strings.TrimSpace(scanner.Text())
+	}
+
+	if name != ctx.name {
+		return cli.NewExitError(fmt.Sprintf("%s    Confirmation did not match %s. Aborted.", errorColor.Sprint("▸"), errorColor.Sprint(ctx.name)), 1)
+	}
+
+	return nil
+}
+
+func waitDeletionAndWriteProgress(ctx *appsDestroyContext, w io.Writer, ch chan error) {
+	select {
+	case err := <-ch:
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"appName": ctx.name,
+			}).Fatal("Failed to destroy the app: " + err.Error())
+		}
+		deleteLocalRepository()
+		fmt.Fprintf(w, "Destroying %s... done\n", color.New(color.FgMagenta).Sprintf("⬢ %s", ctx.name))
+	default:
+		time.Sleep(progressCheckInterval)
+		percent := ctx.client.GetAppDeletionProgress(ctx.name)
+		fmt.Fprintf(w, "Destroying %s... %d%%\r", color.New(color.FgMagenta).Sprintf("⬢ %s", ctx.name), percent)
+		waitDeletionAndWriteProgress(ctx, w, ch)
+	}
+}
+
+func deleteLocalRepository() {
+	repo, err := git.PlainOpen(".")
+	if err != nil {
+		logrus.Debug("Failed to open local Git repository: " + err.Error())
+		return
+	}
+
+	err = repo.DeleteRemote("herogate")
+	if err != nil {
+		logrus.Debug("Failed to delete remote: " + err.Error())
+		return
+	}
 }
