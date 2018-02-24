@@ -33,6 +33,7 @@
     "private/protocol/query",
     "private/protocol/query/queryutil",
     "private/protocol/rest",
+    "private/protocol/restxml",
     "private/protocol/xml/xmlutil",
     "service/cloudformation",
     "service/cloudformation/cloudformationiface",
@@ -42,8 +43,12 @@
     "service/codebuild/codebuildiface",
     "service/codepipeline",
     "service/codepipeline/codepipelineiface",
+    "service/ecr",
+    "service/ecr/ecriface",
     "service/ecs",
     "service/ecs/ecsiface",
+    "service/s3",
+    "service/s3/s3iface",
     "service/sts"
   ]
   revision = "1b176c5c6b57adb03bb982c21930e708ebca5a77"
@@ -291,6 +296,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "80ba7ba0ee55a449e86d9e3d87b63d6439be5613efd5d172ebca2961c648e79e"
+  inputs-digest = "0e88c4119b7f4dc090309e0e08175522e2b670afbcd0e50dab4686b000b47790"
   solver-name = "gps-cdcl"
   solver-version = 1
