@@ -5,6 +5,15 @@ import (
 	"github.com/wata727/herogate/herogate"
 )
 
+// AppsCommand is a command for listing your apps.
+func AppsCommand() cli.Command {
+	return cli.Command{
+		Name:   "apps",
+		Usage:  "list your apps",
+		Action: herogate.Apps,
+	}
+}
+
 // AppsCreateCommand is a command for creating a new app.
 func AppsCreateCommand() cli.Command {
 	return cli.Command{

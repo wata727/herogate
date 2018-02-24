@@ -20,6 +20,7 @@ func NewApp() *cli.App {
 	app.Version = Version
 
 	app.Commands = []cli.Command{
+		command.AppsCommand(),
 		command.AppsCreateCommand(),
 		command.AppsOpenCommand(),
 		command.AppsDestroyCommand(),

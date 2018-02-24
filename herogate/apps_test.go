@@ -22,6 +22,51 @@ import (
 	"github.com/wata727/herogate/mock"
 )
 
+func TestProcessApps(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	client := mock.NewMockClientInterface(ctrl)
+	// Expect to list applications
+	client.EXPECT().ListApps().Return([]*objects.App{
+		{
+			Name:       "young-eyrie-24091",
+			Status:     "CREATE_COMPLETE",
+			Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
+			Endpoint:   "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com",
+		},
+		{
+			Name:       "proud-lab-1661",
+			Status:     "CREATE_COMPLETE",
+			Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/proud-lab-1661",
+			Endpoint:   "http://proud-lab-1661-123456789.us-east-1.elb.amazonaws.com",
+		},
+	})
+
+	app := cli.NewApp()
+	writer := new(bytes.Buffer)
+	app.Writer = writer
+
+	processApps(&appsContext{
+		app:    app,
+		client: client,
+	})
+
+	expectedHeader := "=== Apps"
+	expectedApp1 := "young-eyrie-24091"
+	expectedApp2 := "proud-lab-1661"
+
+	if !strings.Contains(writer.String(), expectedHeader) {
+		t.Fatalf("Expected application outputs are not contained:\nExpected: %s\nActual: %s", expectedHeader, writer.String())
+	}
+	if !strings.Contains(writer.String(), expectedApp1) {
+		t.Fatalf("Expected application outputs are not contained:\nExpected: %s\nActual: %s", expectedApp1, writer.String())
+	}
+	if !strings.Contains(writer.String(), expectedApp2) {
+		t.Fatalf("Expected application outputs are not contained:\nExpected: %s\nActual: %s", expectedApp2, writer.String())
+	}
+}
+
 func TestProcessAppsCreate(t *testing.T) {
 	currentDir, err := os.Getwd()
 	if err != nil {

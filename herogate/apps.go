@@ -21,6 +21,33 @@ import (
 	"gopkg.in/src-d/go-git.v4/config"
 )
 
+type appsContext struct {
+	app    *cli.App
+	client iface.ClientInterface
+}
+
+// Apps returns your apps.
+func Apps(ctx *cli.Context) {
+	processApps(&appsContext{
+		app: ctx.App,
+		client: api.NewClient(&api.ClientOption{
+			Region: "us-east-1", // NOTE: Currently, Fargate supported region is only `us-east-1`
+		}),
+	})
+}
+
+func processApps(ctx *appsContext) {
+	apps := ctx.client.ListApps()
+
+	fmt.Fprintln(ctx.app.Writer, "=== Apps")
+
+	for _, app := range apps {
+		fmt.Fprintln(ctx.app.Writer, app.Name)
+	}
+
+	fmt.Fprint(ctx.app.Writer, "\n")
+}
+
 type appsCreateContext struct {
 	name   string
 	app    *cli.App
