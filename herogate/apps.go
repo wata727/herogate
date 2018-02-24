@@ -80,16 +80,17 @@ func processAppsCreate(ctx *appsCreateContext) error {
 }
 
 func validateAppName(ctx *appsCreateContext) error {
+	errorColor := color.New(color.FgRed)
 	matched, err := regexp.MatchString(`^[a-z0-9][a-z-0-9_\-]+[a-z0-9]$`, ctx.name)
 	if err != nil {
-		return fmt.Errorf("ERROR: Failed to validate app name: %s", ctx.name)
+		return fmt.Errorf("%s    Failed to validate the application name", errorColor.Sprint("▸"))
 	}
 	if !matched {
-		return fmt.Errorf("ERROR: The application name must match the pattern of `^[a-z0-9][a-z-0-9_\\-]+[a-z0-9]$`: %s", ctx.name)
+		return fmt.Errorf("%s    The application name must match the pattern of `^[a-z0-9][a-z-0-9_\\-]+[a-z0-9]$`", errorColor.Sprint("▸"))
 	}
 
 	if _, err := ctx.client.GetApp(ctx.name); err == nil {
-		return fmt.Errorf("ERROR: The application name already exists")
+		return fmt.Errorf("%s    Name is already taken", errorColor.Sprint("▸"))
 	}
 
 	return nil
@@ -151,7 +152,7 @@ func AppsOpen(ctx *cli.Context) error {
 		name = ctx.String("app")
 	}
 	if name == "" {
-		return cli.NewExitError("ERROR: Missing require flag `-a`, You must specify application name", 1)
+		return cli.NewExitError(fmt.Sprintf("%s    Missing require flag `-a`, You must specify an application name", color.New(color.FgRed).Sprint("▸")), 1)
 	}
 
 	return processAppsOpen(&appsOpenContext{
@@ -166,7 +167,7 @@ func AppsOpen(ctx *cli.Context) error {
 func processAppsOpen(ctx *appsOpenContext) error {
 	app, err := ctx.client.GetApp(ctx.name)
 	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("ERROR: Application not found: %s", ctx.name), 1)
+		return cli.NewExitError(fmt.Sprintf("%s    Couldn't find that app.", color.New(color.FgRed).Sprint("▸")), 1)
 	}
 
 	endpoint, err := url.Parse(app.Endpoint)
@@ -189,7 +190,7 @@ func processAppsOpen(ctx *appsOpenContext) error {
 
 	err = openBrowser(endpoint.String())
 	if err != nil {
-		return cli.NewExitError("ERROR: Opening the app error: "+err.Error(), 1)
+		return cli.NewExitError(fmt.Sprintf("%s    Opening the app error: ", color.New(color.FgRed).Sprint("▸"))+err.Error(), 1)
 	}
 	return nil
 }

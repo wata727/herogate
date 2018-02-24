@@ -115,7 +115,7 @@ func TestProcessAppsCreate__invalidName(t *testing.T) {
 		client: api.NewClient(&api.ClientOption{}),
 	})
 
-	expected := cli.NewExitError("ERROR: The application name must match the pattern of `^[a-z0-9][a-z-0-9_\\-]+[a-z0-9]$`: YoungEyrie-24091", 1)
+	expected := cli.NewExitError(fmt.Sprintf("%s    The application name must match the pattern of `^[a-z0-9][a-z-0-9_\\-]+[a-z0-9]$`", color.New(color.FgRed).Sprint("▸")), 1)
 	if err.Error() != expected.Error() {
 		t.Fatalf("Expected error is `%s`, but get `%s`", expected.Error(), err.Error())
 	}
@@ -134,7 +134,7 @@ func TestProcessAppsCreate__duplicateName(t *testing.T) {
 		client: client,
 	})
 
-	expected := cli.NewExitError("ERROR: The application name already exists", 1)
+	expected := cli.NewExitError(fmt.Sprintf("%s    Name is already taken", color.New(color.FgRed).Sprint("▸")), 1)
 	if err.Error() != expected.Error() {
 		t.Fatalf("Expected error is `%s`, but get `%s`", expected.Error(), err.Error())
 	}
@@ -229,8 +229,10 @@ func TestProcessAppsOpen__invalidAppName(t *testing.T) {
 		path:   "",
 		client: client,
 	})
-	if err.Error() != "ERROR: Application not found: young-eyrie-24091" {
-		t.Fatalf("Expected error is `ERROR: Application not found: young-eyrie-24091`, but get `%s`", err.Error())
+
+	expected := fmt.Sprintf("%s    Couldn't find that app.", color.New(color.FgRed).Sprint("▸"))
+	if err.Error() != expected {
+		t.Fatalf("Expected error is `%s`, but get `%s`", expected, err.Error())
 	}
 }
 
@@ -257,8 +259,10 @@ func TestProcessAppsOpen__failedOpen(t *testing.T) {
 		path:   "",
 		client: client,
 	})
-	if err.Error() != "ERROR: Opening the app error: Unexpected error occurred" {
-		t.Fatalf("Expected error is `ERROR: Opening the app error: Unexpected error occurred`, but get `%s`", err.Error())
+
+	expected := fmt.Sprintf("%s    Opening the app error: Unexpected error occurred", color.New(color.FgRed).Sprint("▸"))
+	if err.Error() != expected {
+		t.Fatalf("Expected error is `%s`, but get `%s`", expected, err.Error())
 	}
 }
 

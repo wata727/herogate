@@ -97,8 +97,10 @@ func TestProcessLogs__invalidAppName(t *testing.T) {
 		source: "source",
 		tail:   false,
 	})
-	if err.Error() != "ERROR: Application not found: invalidApp" {
-		t.Fatalf("Expected error is `ERROR: Application not found: invalidApp`, but get `%s`", err.Error())
+
+	expected := fmt.Sprintf("%s    Couldn't find that app.", color.New(color.FgRed).Sprint("▸"))
+	if err.Error() != expected {
+		t.Fatalf("Expected error is `%s`, but get `%s`", expected, err.Error())
 	}
 }
 

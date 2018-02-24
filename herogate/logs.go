@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"github.com/wata727/herogate/api"
@@ -47,7 +48,7 @@ func processLogs(ctx *logsContext) error {
 	var lastEventLog *log.Log
 	eventLogs, err := fetchNewLogs(ctx, lastEventLog)
 	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("ERROR: Application not found: %s", ctx.name), 1)
+		return cli.NewExitError(fmt.Sprintf("%s    Couldn't find that app.", color.New(color.FgRed).Sprint("▸")), 1)
 	}
 	if len(eventLogs)-ctx.num > 0 {
 		eventLogs = eventLogs[len(eventLogs)-ctx.num:]
