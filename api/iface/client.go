@@ -14,4 +14,5 @@ type ClientInterface interface {
 	GetApp(appName string) (*objects.App, error)
 	GetTemplate(appName string) string
 	DestroyApp(appName string) error
+	GetAppDeletionProgress(appName string) int
 }

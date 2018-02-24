@@ -108,3 +108,15 @@ func (m *MockClientInterface) DestroyApp(appName string) error {
 func (mr *MockClientInterfaceMockRecorder) DestroyApp(appName interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DestroyApp", reflect.TypeOf((*MockClientInterface)(nil).DestroyApp), appName)
 }
+
+// GetAppDeletionProgress mocks base method
+func (m *MockClientInterface) GetAppDeletionProgress(appName string) int {
+	ret := m.ctrl.Call(m, "GetAppDeletionProgress", appName)
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+// GetAppDeletionProgress indicates an expected call of GetAppDeletionProgress
+func (mr *MockClientInterfaceMockRecorder) GetAppDeletionProgress(appName interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAppDeletionProgress", reflect.TypeOf((*MockClientInterface)(nil).GetAppDeletionProgress), appName)
+}

@@ -294,3 +294,74 @@ func TestDestroyApp__notFound(t *testing.T) {
 		t.Fatal("Expected error is not nil, but get nil as error")
 	}
 }
+
+func TestGetAppDeletionProgress(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	cfnMock := mock.NewMockCloudFormationAPI(ctrl)
+	cfnMock.EXPECT().ListStackResources(&cloudformation.ListStackResourcesInput{
+		StackName: aws.String("young-eyrie-24091"),
+	}).Return(&cloudformation.ListStackResourcesOutput{
+		StackResourceSummaries: []*cloudformation.StackResourceSummary{
+			{
+				ResourceStatus: aws.String("DELETE_COMPLETE"),
+			},
+			{
+				ResourceStatus: aws.String("DELETE_COMPLETE"),
+			},
+			{
+				ResourceStatus: aws.String("DELETE_COMPLETE"),
+			},
+			{
+				ResourceStatus: aws.String("DELETE_COMPLETE"),
+			},
+			{
+				ResourceStatus: aws.String("DELETE_IN_PROGRESS"),
+			},
+			{
+				ResourceStatus: aws.String("DELETE_IN_PROGRESS"),
+			},
+			{
+				ResourceStatus: aws.String("DELETE_IN_PROGRESS"),
+			},
+			{
+				ResourceStatus: aws.String("DELETE_IN_PROGRESS"),
+			},
+			{
+				ResourceStatus: aws.String("DELETE_IN_PROGRESS"),
+			},
+			{
+				ResourceStatus: aws.String("DELETE_IN_PROGRESS"),
+			},
+		},
+	}, nil)
+
+	client := NewClient(&ClientOption{})
+	client.cloudFormation = cfnMock
+
+	rate := client.GetAppDeletionProgress("young-eyrie-24091")
+	// Total resources: 27, deleted: 4
+	//   => (4 / 27) * 100 = 14.81...
+	if rate != 14 {
+		t.Fatalf("Expected progress rate is `14`, but get `%d`", rate)
+	}
+}
+
+func TestGetAppDeletionProgress__notFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	cfnMock := mock.NewMockCloudFormationAPI(ctrl)
+	cfnMock.EXPECT().ListStackResources(&cloudformation.ListStackResourcesInput{
+		StackName: aws.String("young-eyrie-24091"),
+	}).Return(nil, errors.New("Stack not found."))
+
+	client := NewClient(&ClientOption{})
+	client.cloudFormation = cfnMock
+
+	rate := client.GetAppDeletionProgress("young-eyrie-24091")
+	if rate != 100 {
+		t.Fatalf("Expected progress rate is `100`, but get `%d`", rate)
+	}
+}

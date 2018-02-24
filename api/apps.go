@@ -12,6 +12,9 @@ import (
 	"github.com/wata727/herogate/api/objects"
 )
 
+// XXX: Count of resources of `assets/platform.yaml`
+var totalResources = 27.0
+
 //go:generate go-bindata -o assets/assets.go -pkg assets assets/platform.yaml
 
 // CreateApp creates a new CloudFormation stack and wait until stack create complete.
@@ -95,9 +98,6 @@ func (c *Client) validateAppStatus(app *objects.App) {
 // GetAppCreationProgress returns the creation progress of the application.
 // This function calculates the proportion of resources that are "CREATE_COMPLETE".
 func (c *Client) GetAppCreationProgress(appName string) int {
-	// XXX: Count of resources of `assets/platform.yaml`
-	var totalResources = 27.0
-
 	resp, err := c.cloudFormation.ListStackResources(&cloudformation.ListStackResourcesInput{
 		StackName: aws.String(appName),
 	})
@@ -253,4 +253,25 @@ func (c *Client) DestroyApp(appName string) error {
 	}
 
 	return nil
+}
+
+// GetAppDeletionProgress returns the deletion progress of the application.
+// This function calculates the proportion of resources that are "DELETE_COMPLETE".
+func (c *Client) GetAppDeletionProgress(appName string) int {
+	resp, err := c.cloudFormation.ListStackResources(&cloudformation.ListStackResourcesInput{
+		StackName: aws.String(appName),
+	})
+	if err != nil {
+		// When the stack deleted, returns 100%
+		return 100
+	}
+
+	var deleted int
+	for _, s := range resp.StackResourceSummaries {
+		if aws.StringValue(s.ResourceStatus) == "DELETE_COMPLETE" {
+			deleted++
+		}
+	}
+
+	return int((float64(deleted) / totalResources) * 100)
 }
