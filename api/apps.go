@@ -131,6 +131,16 @@ func (c *Client) GetApp(appName string) (*objects.App, error) {
 	}
 	stack := resp.Stacks[0]
 
+	invalidStack := true
+	for _, tag := range stack.Tags {
+		if aws.StringValue(tag.Key) == "herogate-platform-version" {
+			invalidStack = false
+		}
+	}
+	if invalidStack {
+		return nil, errors.New("Expected stack not found")
+	}
+
 	var repository, endpoint string
 	for _, output := range stack.Outputs {
 		switch aws.StringValue(output.OutputKey) {
@@ -287,6 +297,16 @@ func (c *Client) ListApps() []*objects.App {
 	var repository, endpoint string
 
 	for _, stack := range resp.Stacks {
+		invalidStack := true
+		for _, tag := range stack.Tags {
+			if aws.StringValue(tag.Key) == "herogate-platform-version" {
+				invalidStack = false
+			}
+		}
+		if invalidStack {
+			continue
+		}
+
 		for _, output := range stack.Outputs {
 			switch aws.StringValue(output.OutputKey) {
 			case "Repository":

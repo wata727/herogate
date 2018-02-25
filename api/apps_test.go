@@ -59,6 +59,12 @@ func TestCreateApp(t *testing.T) {
 						OutputValue: aws.String("young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com"),
 					},
 				},
+				Tags: []*cloudformation.Tag{
+					{
+						Key:   aws.String("herogate-platform-version"),
+						Value: aws.String("1.0"),
+					},
+				},
 			},
 		},
 	}, nil)
@@ -152,6 +158,12 @@ func TestGetApp(t *testing.T) {
 						OutputValue: aws.String("young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com"),
 					},
 				},
+				Tags: []*cloudformation.Tag{
+					{
+						Key:   aws.String("herogate-platform-version"),
+						Value: aws.String("1.0"),
+					},
+				},
 			},
 		},
 	}, nil)
@@ -219,6 +231,12 @@ func TestDestroyApp(t *testing.T) {
 					{
 						OutputKey:   aws.String("Endpoint"),
 						OutputValue: aws.String("young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com"),
+					},
+				},
+				Tags: []*cloudformation.Tag{
+					{
+						Key:   aws.String("herogate-platform-version"),
+						Value: aws.String("1.0"),
 					},
 				},
 			},
@@ -386,6 +404,12 @@ func TestListApps(t *testing.T) {
 						OutputValue: aws.String("young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com"),
 					},
 				},
+				Tags: []*cloudformation.Tag{
+					{
+						Key:   aws.String("herogate-platform-version"),
+						Value: aws.String("1.0"),
+					},
+				},
 			},
 			{
 				StackName:   aws.String("proud-lab-1661"),
@@ -398,6 +422,12 @@ func TestListApps(t *testing.T) {
 					{
 						OutputKey:   aws.String("Endpoint"),
 						OutputValue: aws.String("proud-lab-1661-123456789.us-east-1.elb.amazonaws.com"),
+					},
+				},
+				Tags: []*cloudformation.Tag{
+					{
+						Key:   aws.String("herogate-platform-version"),
+						Value: aws.String("1.0"),
 					},
 				},
 			},
