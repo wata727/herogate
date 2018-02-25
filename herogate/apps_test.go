@@ -102,6 +102,8 @@ func TestProcessAppsCreate(t *testing.T) {
 	client := mock.NewMockClientInterface(ctrl)
 	// Expect to get application
 	client.EXPECT().GetApp("young-eyrie-24091").Return(nil, errors.New("Stack not found"))
+	// Expect to check stack
+	client.EXPECT().StackExists("young-eyrie-24091").Return(false)
 	// Expect to create application
 	client.EXPECT().CreateApp("young-eyrie-24091").Return(&objects.App{
 		Name:       "young-eyrie-24091",
@@ -180,6 +182,28 @@ func TestProcessAppsCreate__duplicateName(t *testing.T) {
 	})
 
 	expected := cli.NewExitError(fmt.Sprintf("%s    Name is already taken", color.New(color.FgRed).Sprint("▸")), 1)
+	if err.Error() != expected.Error() {
+		t.Fatalf("Expected error is `%s`, but get `%s`", expected.Error(), err.Error())
+	}
+}
+
+func TestProcessAppsCreate__stackExists(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	client := mock.NewMockClientInterface(ctrl)
+	// Expect to get application
+	client.EXPECT().GetApp("young-eyrie-24091").Return(nil, errors.New("Stack not found"))
+	// Expect to check stack
+	client.EXPECT().StackExists("young-eyrie-24091").Return(true)
+
+	err := processAppsCreate(&appsCreateContext{
+		name:   "young-eyrie-24091",
+		app:    cli.NewApp(),
+		client: client,
+	})
+
+	expected := cli.NewExitError(fmt.Sprintf("%s    Cannot use already existing CloudFormation stack name", color.New(color.FgRed).Sprint("▸")), 1)
 	if err.Error() != expected.Error() {
 		t.Fatalf("Expected error is `%s`, but get `%s`", expected.Error(), err.Error())
 	}

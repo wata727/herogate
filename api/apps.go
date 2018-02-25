@@ -350,3 +350,19 @@ func (c *Client) ListApps() []*objects.App {
 
 	return apps
 }
+
+// StackExists returns whether or not the stack exists.
+func (c *Client) StackExists(stackName string) bool {
+	resp, err := c.cloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String(stackName),
+	})
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"stackName": stackName,
+		}).Fatal("Failed to describe stack")
+	}
+	if len(resp.Stacks) == 0 {
+		return false
+	}
+	return true
+}

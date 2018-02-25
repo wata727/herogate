@@ -119,6 +119,9 @@ func validateAppName(ctx *appsCreateContext) error {
 	if _, err := ctx.client.GetApp(ctx.name); err == nil {
 		return fmt.Errorf("%s    Name is already taken", errorColor.Sprint("▸"))
 	}
+	if ctx.client.StackExists(ctx.name) {
+		return fmt.Errorf("%s    Cannot use already existing CloudFormation stack name", errorColor.Sprint("▸"))
+	}
 
 	return nil
 }

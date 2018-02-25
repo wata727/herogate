@@ -483,3 +483,45 @@ func TestListApps(t *testing.T) {
 		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, apps))
 	}
 }
+
+func TestStackExists(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	cfnMock := mock.NewMockCloudFormationAPI(ctrl)
+	cfnMock.EXPECT().DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String("young-eyrie-24091"),
+	}).Return(&cloudformation.DescribeStacksOutput{
+		Stacks: []*cloudformation.Stack{
+			{
+				StackStatus: aws.String("CREATE_COMPLETE"),
+			},
+		},
+	}, nil)
+
+	client := NewClient(&ClientOption{})
+	client.cloudFormation = cfnMock
+
+	if !client.StackExists("young-eyrie-24091") {
+		t.Fatal("Expected to exists the stack, but did not exist.")
+	}
+}
+
+func TestStackExists__notFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	cfnMock := mock.NewMockCloudFormationAPI(ctrl)
+	cfnMock.EXPECT().DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String("young-eyrie-24091"),
+	}).Return(&cloudformation.DescribeStacksOutput{
+		Stacks: []*cloudformation.Stack{},
+	}, nil)
+
+	client := NewClient(&ClientOption{})
+	client.cloudFormation = cfnMock
+
+	if client.StackExists("young-eyrie-24091") {
+		t.Fatal("Expected to not exists the stack, but exists.")
+	}
+}

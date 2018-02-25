@@ -16,4 +16,5 @@ type ClientInterface interface {
 	GetTemplate(appName string) string
 	DestroyApp(appName string) error
 	GetAppDeletionProgress(appName string) int
+	StackExists(stackName string) bool
 }

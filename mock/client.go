@@ -132,3 +132,15 @@ func (m *MockClientInterface) GetAppDeletionProgress(appName string) int {
 func (mr *MockClientInterfaceMockRecorder) GetAppDeletionProgress(appName interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAppDeletionProgress", reflect.TypeOf((*MockClientInterface)(nil).GetAppDeletionProgress), appName)
 }
+
+// StackExists mocks base method
+func (m *MockClientInterface) StackExists(stackName string) bool {
+	ret := m.ctrl.Call(m, "StackExists", stackName)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// StackExists indicates an expected call of StackExists
+func (mr *MockClientInterfaceMockRecorder) StackExists(stackName interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StackExists", reflect.TypeOf((*MockClientInterface)(nil).StackExists), stackName)
+}
