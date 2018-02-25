@@ -322,7 +322,7 @@ func TestProcessAppsOpen__createInProgress(t *testing.T) {
 		client: client,
 	})
 
-	expected := fmt.Sprintf("%s    Couldn't open that app because it doesn't complete create.", color.New(color.FgRed).Sprint("▸"))
+	expected := fmt.Sprintf("%s    Couldn't open that app because it doesn't have an endpoint.", color.New(color.FgRed).Sprint("▸"))
 	if err.Error() != expected {
 		t.Fatalf("Expected error is `%s`, but get `%s`", expected, err.Error())
 	}

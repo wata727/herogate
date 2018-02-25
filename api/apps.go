@@ -147,23 +147,8 @@ func (c *Client) GetApp(appName string) (*objects.App, error) {
 		case "Repository":
 			repository = aws.StringValue(output.OutputValue)
 		case "Endpoint":
-			endpoint = aws.StringValue(output.OutputValue)
+			endpoint = "http://" + aws.StringValue(output.OutputValue) // ALB endpoint DNS doesn't contain schema
 		}
-	}
-
-	if aws.StringValue(stack.StackStatus) == "CREATE_COMPLETE" {
-		if repository == "" || endpoint == "" {
-			logrus.WithFields(logrus.Fields{
-				"appName":    appName,
-				"repository": repository,
-				"endpoint":   endpoint,
-				"outputs":    stack.Outputs,
-			}).Fatal("Expected outputs are not found.")
-		}
-	}
-
-	if endpoint != "" {
-		endpoint = "http://" + endpoint // ALB endpoint DNS doesn't contain schema
 	}
 
 	return &objects.App{
@@ -318,23 +303,8 @@ func (c *Client) ListApps() []*objects.App {
 			case "Repository":
 				repository = aws.StringValue(output.OutputValue)
 			case "Endpoint":
-				endpoint = aws.StringValue(output.OutputValue)
+				endpoint = "http://" + aws.StringValue(output.OutputValue) // ALB endpoint DNS doesn't contain schema
 			}
-		}
-
-		if aws.StringValue(stack.StackStatus) == "CREATE_COMPLETE" {
-			if repository == "" || endpoint == "" {
-				logrus.WithFields(logrus.Fields{
-					"appName":    aws.StringValue(stack.StackName),
-					"repository": repository,
-					"endpoint":   endpoint,
-					"outputs":    stack.Outputs,
-				}).Fatal("Expected outputs are not found.")
-			}
-		}
-
-		if endpoint != "" {
-			endpoint = "http://" + endpoint // ALB endpoint DNS doesn't contain schema
 		}
 
 		apps = append(apps, &objects.App{

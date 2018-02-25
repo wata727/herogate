@@ -199,8 +199,8 @@ func processAppsOpen(ctx *appsOpenContext) error {
 	if err != nil {
 		return cli.NewExitError(fmt.Sprintf("%s    Couldn't find that app.", color.New(color.FgRed).Sprint("▸")), 1)
 	}
-	if app.Status != "CREATE_COMPLETE" {
-		return cli.NewExitError(fmt.Sprintf("%s    Couldn't open that app because it doesn't complete create.", color.New(color.FgRed).Sprint("▸")), 1)
+	if app.Endpoint == "" {
+		return cli.NewExitError(fmt.Sprintf("%s    Couldn't open that app because it doesn't have an endpoint.", color.New(color.FgRed).Sprint("▸")), 1)
 	}
 
 	endpoint, err := url.Parse(app.Endpoint)
