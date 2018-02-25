@@ -162,11 +162,15 @@ func (c *Client) GetApp(appName string) (*objects.App, error) {
 		}
 	}
 
+	if endpoint != "" {
+		endpoint = "http://" + endpoint // ALB endpoint DNS doesn't contain schema
+	}
+
 	return &objects.App{
 		Name:       appName,
 		Status:     aws.StringValue(stack.StackStatus),
 		Repository: repository,
-		Endpoint:   "http://" + endpoint, // ALB endpoint DNS doesn't contain schema
+		Endpoint:   endpoint,
 	}, nil
 }
 
@@ -190,15 +194,16 @@ func (c *Client) DestroyApp(appName string) error {
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"appName": appName,
-		}).Fatalf("Failed to get S3 bucket: " + err.Error())
-	}
-	_, err = c.s3.DeleteBucket(&s3.DeleteBucketInput{
-		Bucket: s3Resource.StackResourceDetail.PhysicalResourceId,
-	})
-	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"appName": appName,
-		}).Fatalf("Failed to delete S3 bucket: " + err.Error())
+		}).Debugf("Failed to get S3 bucket: " + err.Error())
+	} else {
+		_, err = c.s3.DeleteBucket(&s3.DeleteBucketInput{
+			Bucket: s3Resource.StackResourceDetail.PhysicalResourceId,
+		})
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"appName": appName,
+			}).Debugf("Failed to delete S3 bucket: " + err.Error())
+		}
 	}
 
 	// After that, delete ECR because if images exist, DeleteStack is failed.
@@ -209,16 +214,17 @@ func (c *Client) DestroyApp(appName string) error {
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"appName": appName,
-		}).Fatalf("Failed to get ECR repository: " + err.Error())
-	}
-	_, err = c.ecr.DeleteRepository(&ecr.DeleteRepositoryInput{
-		Force:          aws.Bool(true),
-		RepositoryName: ecrResource.StackResourceDetail.PhysicalResourceId,
-	})
-	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"appName": appName,
-		}).Fatalf("Failed to delete ECR repository: " + err.Error())
+		}).Debugf("Failed to get ECR repository: " + err.Error())
+	} else {
+		_, err = c.ecr.DeleteRepository(&ecr.DeleteRepositoryInput{
+			Force:          aws.Bool(true),
+			RepositoryName: ecrResource.StackResourceDetail.PhysicalResourceId,
+		})
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"appName": appName,
+			}).Debugf("Failed to delete ECR repository: " + err.Error())
+		}
 	}
 
 	// At last, delete CloudFormation stack.
@@ -325,14 +331,21 @@ func (c *Client) ListApps() []*objects.App {
 					"outputs":    stack.Outputs,
 				}).Fatal("Expected outputs are not found.")
 			}
-
-			apps = append(apps, &objects.App{
-				Name:       aws.StringValue(stack.StackName),
-				Status:     aws.StringValue(stack.StackStatus),
-				Repository: repository,
-				Endpoint:   "http://" + endpoint, // ALB endpoint DNS doesn't contain schema
-			})
 		}
+
+		if endpoint != "" {
+			endpoint = "http://" + endpoint // ALB endpoint DNS doesn't contain schema
+		}
+
+		apps = append(apps, &objects.App{
+			Name:       aws.StringValue(stack.StackName),
+			Status:     aws.StringValue(stack.StackStatus),
+			Repository: repository,
+			Endpoint:   endpoint,
+		})
+
+		repository = ""
+		endpoint = ""
 	}
 
 	return apps

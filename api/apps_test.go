@@ -187,6 +187,44 @@ func TestGetApp(t *testing.T) {
 	}
 }
 
+func TestGetApp_createInProgress(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	cfnMock := mock.NewMockCloudFormationAPI(ctrl)
+	cfnMock.EXPECT().DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String("young-eyrie-24091"),
+	}).Return(&cloudformation.DescribeStacksOutput{
+		Stacks: []*cloudformation.Stack{
+			{
+				StackStatus: aws.String("CREATE_IN_PROGRESS"),
+				Tags: []*cloudformation.Tag{
+					{
+						Key:   aws.String("herogate-platform-version"),
+						Value: aws.String("1.0"),
+					},
+				},
+			},
+		},
+	}, nil)
+
+	client := NewClient(&ClientOption{})
+	client.cloudFormation = cfnMock
+	app, err := client.GetApp("young-eyrie-24091")
+
+	if err != nil {
+		t.Fatal("Expected error is nil, but get error: " + err.Error())
+	}
+
+	expected := &objects.App{
+		Name:   "young-eyrie-24091",
+		Status: "CREATE_IN_PROGRESS",
+	}
+	if !cmp.Equal(expected, app) {
+		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, app))
+	}
+}
+
 func TestGetApp__notFound(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -413,17 +451,7 @@ func TestListApps(t *testing.T) {
 			},
 			{
 				StackName:   aws.String("proud-lab-1661"),
-				StackStatus: aws.String("CREATE_COMPLETE"),
-				Outputs: []*cloudformation.Output{
-					{
-						OutputKey:   aws.String("Repository"),
-						OutputValue: aws.String("ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/proud-lab-1661"),
-					},
-					{
-						OutputKey:   aws.String("Endpoint"),
-						OutputValue: aws.String("proud-lab-1661-123456789.us-east-1.elb.amazonaws.com"),
-					},
-				},
+				StackStatus: aws.String("CREATE_IN_PROGRESS"),
 				Tags: []*cloudformation.Tag{
 					{
 						Key:   aws.String("herogate-platform-version"),
@@ -446,10 +474,8 @@ func TestListApps(t *testing.T) {
 			Endpoint:   "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com",
 		},
 		{
-			Name:       "proud-lab-1661",
-			Status:     "CREATE_COMPLETE",
-			Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/proud-lab-1661",
-			Endpoint:   "http://proud-lab-1661-123456789.us-east-1.elb.amazonaws.com",
+			Name:   "proud-lab-1661",
+			Status: "CREATE_IN_PROGRESS",
 		},
 	}
 

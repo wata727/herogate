@@ -281,6 +281,29 @@ func TestProcessAppsOpen__invalidAppName(t *testing.T) {
 	}
 }
 
+func TestProcessAppsOpen__createInProgress(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	client := mock.NewMockClientInterface(ctrl)
+	// Expect to get application
+	client.EXPECT().GetApp("young-eyrie-24091").Return(&objects.App{
+		Name:   "young-eyrie-24091",
+		Status: "CREATE_IN_PROGRESS",
+	}, nil)
+
+	err := processAppsOpen(&appsOpenContext{
+		name:   "young-eyrie-24091",
+		path:   "",
+		client: client,
+	})
+
+	expected := fmt.Sprintf("%s    Couldn't open that app because it doesn't complete create.", color.New(color.FgRed).Sprint("▸"))
+	if err.Error() != expected {
+		t.Fatalf("Expected error is `%s`, but get `%s`", expected, err.Error())
+	}
+}
+
 func TestProcessAppsOpen__failedOpen(t *testing.T) {
 	// Mock opening browser function
 	openBrowser = func(url string) error {
