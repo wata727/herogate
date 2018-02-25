@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ecr"
+	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/sirupsen/logrus"
 	"github.com/wata727/herogate/api/assets"
@@ -131,17 +132,16 @@ func (c *Client) GetApp(appName string) (*objects.App, error) {
 	}
 	stack := resp.Stacks[0]
 
-	invalidStack := true
+	var repository, endpoint, platformVersion string
 	for _, tag := range stack.Tags {
 		if aws.StringValue(tag.Key) == "herogate-platform-version" {
-			invalidStack = false
+			platformVersion = aws.StringValue(tag.Value)
 		}
 	}
-	if invalidStack {
+	if platformVersion == "" {
 		return nil, errors.New("Expected stack not found")
 	}
 
-	var repository, endpoint string
 	for _, output := range stack.Outputs {
 		switch aws.StringValue(output.OutputKey) {
 		case "Repository":
@@ -152,10 +152,11 @@ func (c *Client) GetApp(appName string) (*objects.App, error) {
 	}
 
 	return &objects.App{
-		Name:       appName,
-		Status:     aws.StringValue(stack.StackStatus),
-		Repository: repository,
-		Endpoint:   endpoint,
+		Name:            appName,
+		Status:          aws.StringValue(stack.StackStatus),
+		Repository:      repository,
+		Endpoint:        endpoint,
+		PlatformVersion: platformVersion,
 	}, nil
 }
 
@@ -285,16 +286,15 @@ func (c *Client) ListApps() []*objects.App {
 	}
 
 	apps := []*objects.App{}
-	var repository, endpoint string
 
 	for _, stack := range resp.Stacks {
-		invalidStack := true
+		var repository, endpoint, platformVersion string
 		for _, tag := range stack.Tags {
 			if aws.StringValue(tag.Key) == "herogate-platform-version" {
-				invalidStack = false
+				platformVersion = aws.StringValue(tag.Value)
 			}
 		}
-		if invalidStack {
+		if platformVersion == "" {
 			continue
 		}
 
@@ -308,14 +308,12 @@ func (c *Client) ListApps() []*objects.App {
 		}
 
 		apps = append(apps, &objects.App{
-			Name:       aws.StringValue(stack.StackName),
-			Status:     aws.StringValue(stack.StackStatus),
-			Repository: repository,
-			Endpoint:   endpoint,
+			Name:            aws.StringValue(stack.StackName),
+			Status:          aws.StringValue(stack.StackStatus),
+			Repository:      repository,
+			Endpoint:        endpoint,
+			PlatformVersion: platformVersion,
 		})
-
-		repository = ""
-		endpoint = ""
 	}
 
 	return apps
@@ -335,4 +333,54 @@ func (c *Client) StackExists(stackName string) bool {
 		return false
 	}
 	return true
+}
+
+// GetAppInfo returns the application info object.
+// If the application not found, returns nil and error.
+// The difference from `GetApp` is to include container's details, platform version, etc.
+func (c *Client) GetAppInfo(appName string) (*objects.AppInfo, error) {
+	app, err := c.GetApp(appName)
+	if err != nil {
+		return nil, err
+	}
+
+	serviceResp, err := c.ecs.DescribeServices(&ecs.DescribeServicesInput{
+		Cluster:  aws.String(appName),
+		Services: []*string{aws.String(appName)},
+	})
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"appName": appName,
+		}).Fatal("Failed to get the ECS service: " + err.Error())
+	}
+	if len(serviceResp.Services) == 0 {
+		logrus.WithFields(logrus.Fields{
+			"appName": appName,
+		}).Fatal("ECS services are not found: " + err.Error())
+	}
+	service := serviceResp.Services[0]
+
+	taskResp, err := c.ecs.DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+		TaskDefinition: service.TaskDefinition,
+	})
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"appName":  appName,
+			"taskName": aws.StringValue(service.TaskDefinition),
+		}).Fatal("Failed to get the ECS task definiation: " + err.Error())
+	}
+
+	containers := []*objects.Container{}
+	for _, container := range taskResp.TaskDefinition.ContainerDefinitions {
+		containers = append(containers, &objects.Container{
+			Name:  aws.StringValue(container.Name),
+			Count: aws.Int64Value(service.RunningCount),
+		})
+	}
+
+	return &objects.AppInfo{
+		App:        app,
+		Containers: containers,
+		Region:     "us-east-1", // NOTE: Currently, Fargate supported region is only `us-east-1`
+	}, nil
 }

@@ -164,6 +164,71 @@ func writeCreationResult(appName string, v appsCreateOutput, w io.Writer) {
 	fmt.Fprintf(w, "%s | %s\n", endpointColor.Sprint(v.endpoint), repositoryColor.Sprint(v.repository))
 }
 
+type appsInfoContext struct {
+	name   string
+	app    *cli.App
+	client iface.ClientInterface
+}
+
+// AppsInfo displays the application details.
+// It includes platform version, container definiations, endpoint and repository URL.
+func AppsInfo(ctx *cli.Context) error {
+	_, name := detectAppFromRepo()
+	if ctx.String("app") != "" {
+		logrus.Debug("Override application name: " + ctx.String("app"))
+		name = ctx.String("app")
+	}
+	if ctx.Args().First() != "" {
+		logrus.Debug("Override application name: " + ctx.Args().First())
+		name = ctx.Args().First()
+	}
+	if name == "" {
+		return cli.NewExitError(
+			fmt.Sprintf(
+				"%s    No app specified.\n%s    USAGE: herogate apps:info APPNAME",
+				color.New(color.FgRed).Sprint("▸"),
+				color.New(color.FgRed).Sprint("▸"),
+			),
+			1,
+		)
+	}
+
+	return processAppsInfo(&appsInfoContext{
+		name: name,
+		app:  ctx.App,
+		client: api.NewClient(&api.ClientOption{
+			Region: "us-east-1", // NOTE: Currently, Fargate supported region is only `us-east-1`
+		}),
+	})
+}
+
+func processAppsInfo(ctx *appsInfoContext) error {
+	app, err := ctx.client.GetAppInfo(ctx.name)
+	if err != nil {
+		return cli.NewExitError(fmt.Sprintf("%s    Couldn't find that app.", color.New(color.FgRed).Sprint("▸")), 1)
+	}
+
+	fmt.Fprintln(ctx.app.Writer, fmt.Sprintf("=== %s", app.Name))
+	for i, container := range app.Containers {
+		if i == 0 {
+			fmt.Fprintln(ctx.app.Writer, fmt.Sprintf("Containers:       %s: %d", container.Name, container.Count))
+		} else {
+			fmt.Fprintln(ctx.app.Writer, fmt.Sprintf("                  %s: %d", container.Name, container.Count))
+		}
+	}
+	if app.Endpoint != "" {
+		fmt.Fprintln(ctx.app.Writer, fmt.Sprintf("Web URL:          %s", app.Endpoint))
+	}
+	if app.Repository != "" {
+		fmt.Fprintln(ctx.app.Writer, fmt.Sprintf("Git URL:          %s", app.Repository))
+	}
+	fmt.Fprintln(ctx.app.Writer, fmt.Sprintf("Status:           %s", app.Status))
+	fmt.Fprintln(ctx.app.Writer, fmt.Sprintf("Region:           %s", app.Region))
+	fmt.Fprintln(ctx.app.Writer, fmt.Sprintf("Platform Version: %s", app.PlatformVersion))
+
+	return nil
+}
+
 type appsOpenContext struct {
 	name   string
 	path   string

@@ -144,3 +144,16 @@ func (m *MockClientInterface) StackExists(stackName string) bool {
 func (mr *MockClientInterfaceMockRecorder) StackExists(stackName interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StackExists", reflect.TypeOf((*MockClientInterface)(nil).StackExists), stackName)
 }
+
+// GetAppInfo mocks base method
+func (m *MockClientInterface) GetAppInfo(appName string) (*objects.AppInfo, error) {
+	ret := m.ctrl.Call(m, "GetAppInfo", appName)
+	ret0, _ := ret[0].(*objects.AppInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAppInfo indicates an expected call of GetAppInfo
+func (mr *MockClientInterfaceMockRecorder) GetAppInfo(appName interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAppInfo", reflect.TypeOf((*MockClientInterface)(nil).GetAppInfo), appName)
+}

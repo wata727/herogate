@@ -30,16 +30,18 @@ func TestProcessApps(t *testing.T) {
 	// Expect to list applications
 	client.EXPECT().ListApps().Return([]*objects.App{
 		{
-			Name:       "young-eyrie-24091",
-			Status:     "CREATE_COMPLETE",
-			Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
-			Endpoint:   "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com",
+			Name:            "young-eyrie-24091",
+			Status:          "CREATE_COMPLETE",
+			Repository:      "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
+			Endpoint:        "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com",
+			PlatformVersion: "1.0",
 		},
 		{
-			Name:       "proud-lab-1661",
-			Status:     "CREATE_COMPLETE",
-			Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/proud-lab-1661",
-			Endpoint:   "http://proud-lab-1661-123456789.us-east-1.elb.amazonaws.com",
+			Name:            "proud-lab-1661",
+			Status:          "CREATE_COMPLETE",
+			Repository:      "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/proud-lab-1661",
+			Endpoint:        "http://proud-lab-1661-123456789.us-east-1.elb.amazonaws.com",
+			PlatformVersion: "1.0",
 		},
 	})
 
@@ -106,10 +108,11 @@ func TestProcessAppsCreate(t *testing.T) {
 	client.EXPECT().StackExists("young-eyrie-24091").Return(false)
 	// Expect to create application
 	client.EXPECT().CreateApp("young-eyrie-24091").Return(&objects.App{
-		Name:       "young-eyrie-24091",
-		Status:     "CREATE_COMPLETE",
-		Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
-		Endpoint:   "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com",
+		Name:            "young-eyrie-24091",
+		Status:          "CREATE_COMPLETE",
+		Repository:      "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
+		Endpoint:        "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com",
+		PlatformVersion: "1.0",
 	})
 	// Allow to get progress rate
 	client.EXPECT().GetAppCreationProgress("young-eyrie-24091").Return(100).AnyTimes()
@@ -209,6 +212,80 @@ func TestProcessAppsCreate__stackExists(t *testing.T) {
 	}
 }
 
+func TestProcessAppsInfo(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	client := mock.NewMockClientInterface(ctrl)
+	// Expect to get application info
+	client.EXPECT().GetAppInfo("young-eyrie-24091").Return(&objects.AppInfo{
+		App: &objects.App{
+			Name:            "young-eyrie-24091",
+			Status:          "CREATE_COMPLETE",
+			Repository:      "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
+			Endpoint:        "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com",
+			PlatformVersion: "1.0",
+		},
+		Containers: []*objects.Container{
+			{
+				Name:  "web",
+				Count: 1,
+			},
+			{
+				Name:  "worker",
+				Count: 1,
+			},
+		},
+		Region: "us-east-1",
+	}, nil)
+
+	app := cli.NewApp()
+	writer := new(bytes.Buffer)
+	app.Writer = writer
+
+	err := processAppsInfo(&appsInfoContext{
+		name:   "young-eyrie-24091",
+		app:    app,
+		client: client,
+	})
+	if err != nil {
+		t.Fatalf("Expected error is nil, but get `%s`", err.Error())
+	}
+
+	expected := `=== young-eyrie-24091
+Containers:       web: 1
+                  worker: 1
+Web URL:          http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com
+Git URL:          ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091
+Status:           CREATE_COMPLETE
+Region:           us-east-1
+Platform Version: 1.0
+`
+	if writer.String() != expected {
+		t.Fatalf("Expected to output is %s, but get `%s`", expected, writer.String())
+	}
+}
+
+func TestProcessAppsInfo__invalidAppName(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	client := mock.NewMockClientInterface(ctrl)
+	// Expect to get application
+	client.EXPECT().GetAppInfo("young-eyrie-24091").Return(nil, errors.New("Stack not found"))
+
+	err := processAppsInfo(&appsInfoContext{
+		name:   "young-eyrie-24091",
+		app:    cli.NewApp(),
+		client: client,
+	})
+
+	expected := fmt.Sprintf("%s    Couldn't find that app.", color.New(color.FgRed).Sprint("▸"))
+	if err.Error() != expected {
+		t.Fatalf("Expected error is `%s`, but get `%s`", expected, err.Error())
+	}
+}
+
 func TestProcessAppsOpen(t *testing.T) {
 	var called bool
 	// Mock opening browser function
@@ -227,10 +304,11 @@ func TestProcessAppsOpen(t *testing.T) {
 	client := mock.NewMockClientInterface(ctrl)
 	// Expect to get application
 	client.EXPECT().GetApp("young-eyrie-24091").Return(&objects.App{
-		Name:       "young-eyrie-24091",
-		Status:     "CREATE_COMPLETE",
-		Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
-		Endpoint:   "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com/",
+		Name:            "young-eyrie-24091",
+		Status:          "CREATE_COMPLETE",
+		Repository:      "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
+		Endpoint:        "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com/",
+		PlatformVersion: "1.0",
 	}, nil)
 
 	err := processAppsOpen(&appsOpenContext{
@@ -265,10 +343,11 @@ func TestProcessAppsOpen__withPath(t *testing.T) {
 	client := mock.NewMockClientInterface(ctrl)
 	// Expect to get application
 	client.EXPECT().GetApp("young-eyrie-24091").Return(&objects.App{
-		Name:       "young-eyrie-24091",
-		Status:     "CREATE_COMPLETE",
-		Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
-		Endpoint:   "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com/",
+		Name:            "young-eyrie-24091",
+		Status:          "CREATE_COMPLETE",
+		Repository:      "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
+		Endpoint:        "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com/",
+		PlatformVersion: "1.0",
 	}, nil)
 
 	err := processAppsOpen(&appsOpenContext{
@@ -312,8 +391,9 @@ func TestProcessAppsOpen__createInProgress(t *testing.T) {
 	client := mock.NewMockClientInterface(ctrl)
 	// Expect to get application
 	client.EXPECT().GetApp("young-eyrie-24091").Return(&objects.App{
-		Name:   "young-eyrie-24091",
-		Status: "CREATE_IN_PROGRESS",
+		Name:            "young-eyrie-24091",
+		Status:          "CREATE_IN_PROGRESS",
+		PlatformVersion: "1.0",
 	}, nil)
 
 	err := processAppsOpen(&appsOpenContext{
@@ -340,10 +420,11 @@ func TestProcessAppsOpen__failedOpen(t *testing.T) {
 	client := mock.NewMockClientInterface(ctrl)
 	// Expect to get application
 	client.EXPECT().GetApp("young-eyrie-24091").Return(&objects.App{
-		Name:       "young-eyrie-24091",
-		Status:     "CREATE_COMPLETE",
-		Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
-		Endpoint:   "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com/",
+		Name:            "young-eyrie-24091",
+		Status:          "CREATE_COMPLETE",
+		Repository:      "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
+		Endpoint:        "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com/",
+		PlatformVersion: "1.0",
 	}, nil)
 
 	err := processAppsOpen(&appsOpenContext{
@@ -400,10 +481,11 @@ func TestProcessAppsDestroy(t *testing.T) {
 	client := mock.NewMockClientInterface(ctrl)
 	// Expect to get application
 	client.EXPECT().GetApp("young-eyrie-24091").Return(&objects.App{
-		Name:       "young-eyrie-24091",
-		Status:     "CREATE_COMPLETE",
-		Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
-		Endpoint:   "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com/",
+		Name:            "young-eyrie-24091",
+		Status:          "CREATE_COMPLETE",
+		Repository:      "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
+		Endpoint:        "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com/",
+		PlatformVersion: "1.0",
 	}, nil)
 	// Expect to destroy application
 	client.EXPECT().DestroyApp("young-eyrie-24091").Return(nil)
@@ -473,10 +555,11 @@ func TestProcessAppsDestroy__confirmationFailed(t *testing.T) {
 	client := mock.NewMockClientInterface(ctrl)
 	// Expect to get application
 	client.EXPECT().GetApp("young-eyrie-24091").Return(&objects.App{
-		Name:       "young-eyrie-24091",
-		Status:     "CREATE_COMPLETE",
-		Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
-		Endpoint:   "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com/",
+		Name:            "young-eyrie-24091",
+		Status:          "CREATE_COMPLETE",
+		Repository:      "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
+		Endpoint:        "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com/",
+		PlatformVersion: "1.0",
 	}, nil)
 
 	err := processAppsDestroy(&appsDestroyContext{
@@ -535,10 +618,11 @@ func TestProcessAppsDestroy__withConfirmation(t *testing.T) {
 	client := mock.NewMockClientInterface(ctrl)
 	// Expect to get application
 	client.EXPECT().GetApp("young-eyrie-24091").Return(&objects.App{
-		Name:       "young-eyrie-24091",
-		Status:     "CREATE_COMPLETE",
-		Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
-		Endpoint:   "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com/",
+		Name:            "young-eyrie-24091",
+		Status:          "CREATE_COMPLETE",
+		Repository:      "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
+		Endpoint:        "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com/",
+		PlatformVersion: "1.0",
 	}, nil)
 	// Expect to destroy application
 	client.EXPECT().DestroyApp("young-eyrie-24091").Return(nil)

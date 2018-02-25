@@ -22,6 +22,7 @@ func NewApp() *cli.App {
 	app.Commands = []cli.Command{
 		command.AppsCommand(),
 		command.AppsCreateCommand(),
+		command.AppsInfoCommand(),
 		command.AppsOpenCommand(),
 		command.AppsDestroyCommand(),
 		command.LogsCommand(),

@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ecr"
+	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
@@ -74,10 +75,11 @@ func TestCreateApp(t *testing.T) {
 
 	app := client.CreateApp("young-eyrie-24091")
 	expected := &objects.App{
-		Name:       "young-eyrie-24091",
-		Status:     "CREATE_COMPLETE",
-		Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
-		Endpoint:   "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com",
+		Name:            "young-eyrie-24091",
+		Status:          "CREATE_COMPLETE",
+		Repository:      "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
+		Endpoint:        "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com",
+		PlatformVersion: "1.0",
 	}
 	if !cmp.Equal(expected, app) {
 		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, app))
@@ -177,10 +179,11 @@ func TestGetApp(t *testing.T) {
 	}
 
 	expected := &objects.App{
-		Name:       "young-eyrie-24091",
-		Status:     "CREATE_COMPLETE",
-		Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
-		Endpoint:   "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com",
+		Name:            "young-eyrie-24091",
+		Status:          "CREATE_COMPLETE",
+		Repository:      "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
+		Endpoint:        "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com",
+		PlatformVersion: "1.0",
 	}
 	if !cmp.Equal(expected, app) {
 		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, app))
@@ -217,8 +220,9 @@ func TestGetApp_createInProgress(t *testing.T) {
 	}
 
 	expected := &objects.App{
-		Name:   "young-eyrie-24091",
-		Status: "CREATE_IN_PROGRESS",
+		Name:            "young-eyrie-24091",
+		Status:          "CREATE_IN_PROGRESS",
+		PlatformVersion: "1.0",
 	}
 	if !cmp.Equal(expected, app) {
 		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, app))
@@ -468,14 +472,16 @@ func TestListApps(t *testing.T) {
 
 	expected := []*objects.App{
 		{
-			Name:       "young-eyrie-24091",
-			Status:     "CREATE_COMPLETE",
-			Repository: "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
-			Endpoint:   "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com",
+			Name:            "young-eyrie-24091",
+			Status:          "CREATE_COMPLETE",
+			Repository:      "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
+			Endpoint:        "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com",
+			PlatformVersion: "1.0",
 		},
 		{
-			Name:   "proud-lab-1661",
-			Status: "CREATE_IN_PROGRESS",
+			Name:            "proud-lab-1661",
+			Status:          "CREATE_IN_PROGRESS",
+			PlatformVersion: "1.0",
 		},
 	}
 
@@ -523,5 +529,113 @@ func TestStackExists__notFound(t *testing.T) {
 
 	if client.StackExists("young-eyrie-24091") {
 		t.Fatal("Expected to not exists the stack, but exists.")
+	}
+}
+
+func TestGetAppInfo(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	cfnMock := mock.NewMockCloudFormationAPI(ctrl)
+	ecsMock := mock.NewMockECSAPI(ctrl)
+	// Expected to describe stacks
+	cfnMock.EXPECT().DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String("young-eyrie-24091"),
+	}).Return(&cloudformation.DescribeStacksOutput{
+		Stacks: []*cloudformation.Stack{
+			{
+				StackStatus: aws.String("CREATE_COMPLETE"),
+				Outputs: []*cloudformation.Output{
+					{
+						OutputKey:   aws.String("Repository"),
+						OutputValue: aws.String("ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091"),
+					},
+					{
+						OutputKey:   aws.String("Endpoint"),
+						OutputValue: aws.String("young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com"),
+					},
+				},
+				Tags: []*cloudformation.Tag{
+					{
+						Key:   aws.String("herogate-platform-version"),
+						Value: aws.String("1.0"),
+					},
+				},
+			},
+		},
+	}, nil)
+	// Expected to describe services
+	ecsMock.EXPECT().DescribeServices(&ecs.DescribeServicesInput{
+		Cluster:  aws.String("young-eyrie-24091"),
+		Services: []*string{aws.String("young-eyrie-24091")},
+	}).Return(&ecs.DescribeServicesOutput{
+		Services: []*ecs.Service{
+			{
+				TaskDefinition: aws.String("arn:aws:ecs:us-east-1:123456789:task-definition/young-eyrie-24091:1"),
+				RunningCount:   aws.Int64(1),
+			},
+		},
+	}, nil)
+	// Expected to describe task definition
+	ecsMock.EXPECT().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+		TaskDefinition: aws.String("arn:aws:ecs:us-east-1:123456789:task-definition/young-eyrie-24091:1"),
+	}).Return(&ecs.DescribeTaskDefinitionOutput{
+		TaskDefinition: &ecs.TaskDefinition{
+			ContainerDefinitions: []*ecs.ContainerDefinition{
+				{
+					Name: aws.String("web"),
+				},
+			},
+		},
+	}, nil)
+
+	client := NewClient(&ClientOption{})
+	client.cloudFormation = cfnMock
+	client.ecs = ecsMock
+	app, err := client.GetAppInfo("young-eyrie-24091")
+
+	if err != nil {
+		t.Fatal("Expected error is nil, but get error: " + err.Error())
+	}
+
+	expected := &objects.AppInfo{
+		App: &objects.App{
+			Name:            "young-eyrie-24091",
+			Status:          "CREATE_COMPLETE",
+			Repository:      "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/young-eyrie-24091",
+			Endpoint:        "http://young-eyrie-24091-123456789.us-east-1.elb.amazonaws.com",
+			PlatformVersion: "1.0",
+		},
+		Containers: []*objects.Container{
+			{
+				Name:  "web",
+				Count: 1,
+			},
+		},
+		Region: "us-east-1",
+	}
+	if !cmp.Equal(expected, app) {
+		t.Fatalf("\nDiff: %s\n", cmp.Diff(expected, app))
+	}
+}
+
+func TestGetAppInfo__notFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	cfnMock := mock.NewMockCloudFormationAPI(ctrl)
+	cfnMock.EXPECT().DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String("young-eyrie-24091"),
+	}).Return(nil, errors.New("stack not found"))
+
+	client := NewClient(&ClientOption{})
+	client.cloudFormation = cfnMock
+	app, err := client.GetAppInfo("young-eyrie-24091")
+
+	if err == nil {
+		t.Fatal("Expected error is not nil, but get nil as error")
+	}
+	if app != nil {
+		t.Fatal("Expected app is nil, but get app")
 	}
 }

@@ -24,6 +24,17 @@ func AppsCreateCommand() cli.Command {
 	}
 }
 
+// AppsInfoCommand is a command for showing the app's details.
+func AppsInfoCommand() cli.Command {
+	return cli.Command{
+		Name:      "apps:info",
+		ShortName: "info",
+		Usage:     "show detailed app information",
+		Flags:     sharedFlags(),
+		Action:    herogate.AppsInfo,
+	}
+}
+
 // AppsOpenCommand is a command for opening the app in a web browser.
 func AppsOpenCommand() cli.Command {
 	return cli.Command{
