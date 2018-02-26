@@ -18,4 +18,5 @@ type ClientInterface interface {
 	GetAppDeletionProgress(appName string) int
 	StackExists(stackName string) bool
 	GetAppInfo(appName string) (*objects.AppInfo, error)
+	DescribeEnvVars(appName string) (map[string]string, error)
 }

@@ -131,6 +131,12 @@
   version = "v0.2.0"
 
 [[projects]]
+  name = "github.com/rhymond/gopad"
+  packages = ["."]
+  revision = "052ab47fb069359db966f3587d12962f94c6f2d9"
+  version = "v1.0.1"
+
+[[projects]]
   name = "github.com/sergi/go-diff"
   packages = ["diffmatchpatch"]
   revision = "1744e2970ca51c86172c8190fadad617561ed6e7"
@@ -296,6 +302,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0e88c4119b7f4dc090309e0e08175522e2b670afbcd0e50dab4686b000b47790"
+  inputs-digest = "62c9a5d84041445a68b7f99409805d4c0a600d563dd3d201284a09930cf1abf1"
   solver-name = "gps-cdcl"
   solver-version = 1

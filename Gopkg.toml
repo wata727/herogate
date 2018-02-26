@@ -59,3 +59,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/skratchdot/open-golang"
+
+[[constraint]]
+  name = "github.com/rhymond/gopad"
+  version = "1.0.1"

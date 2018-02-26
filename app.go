@@ -25,6 +25,7 @@ func NewApp() *cli.App {
 		command.AppsInfoCommand(),
 		command.AppsOpenCommand(),
 		command.AppsDestroyCommand(),
+		command.ConfigCommand(),
 		command.LogsCommand(),
 		command.InternalCommand(),
 	}

@@ -157,3 +157,16 @@ func (m *MockClientInterface) GetAppInfo(appName string) (*objects.AppInfo, erro
 func (mr *MockClientInterfaceMockRecorder) GetAppInfo(appName interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAppInfo", reflect.TypeOf((*MockClientInterface)(nil).GetAppInfo), appName)
 }
+
+// DescribeEnvVars mocks base method
+func (m *MockClientInterface) DescribeEnvVars(appName string) (map[string]string, error) {
+	ret := m.ctrl.Call(m, "DescribeEnvVars", appName)
+	ret0, _ := ret[0].(map[string]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeEnvVars indicates an expected call of DescribeEnvVars
+func (mr *MockClientInterfaceMockRecorder) DescribeEnvVars(appName interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeEnvVars", reflect.TypeOf((*MockClientInterface)(nil).DescribeEnvVars), appName)
+}
