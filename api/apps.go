@@ -325,9 +325,7 @@ func (c *Client) StackExists(stackName string) bool {
 		StackName: aws.String(stackName),
 	})
 	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"stackName": stackName,
-		}).Fatal("Failed to describe stack")
+		return false
 	}
 	if len(resp.Stacks) == 0 {
 		return false

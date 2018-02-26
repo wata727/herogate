@@ -520,9 +520,7 @@ func TestStackExists__notFound(t *testing.T) {
 	cfnMock := mock.NewMockCloudFormationAPI(ctrl)
 	cfnMock.EXPECT().DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String("young-eyrie-24091"),
-	}).Return(&cloudformation.DescribeStacksOutput{
-		Stacks: []*cloudformation.Stack{},
-	}, nil)
+	}).Return(nil, errors.New("Stack not found"))
 
 	client := NewClient(&ClientOption{})
 	client.cloudFormation = cfnMock
