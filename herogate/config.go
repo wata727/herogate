@@ -60,3 +60,54 @@ func processConfig(ctx *configContext) error {
 
 	return nil
 }
+
+type configGetContext struct {
+	name   string
+	env    string
+	app    *cli.App
+	client iface.ClientInterface
+}
+
+// ConfigGet displays an environment variable of the application container.
+func ConfigGet(ctx *cli.Context) error {
+	_, name := detectAppFromRepo()
+	if ctx.String("app") != "" {
+		logrus.Debug("Override application name: " + ctx.String("app"))
+		name = ctx.String("app")
+	}
+	if name == "" {
+		return cli.NewExitError(fmt.Sprintf("%s    Missing require flag `-a`, You must specify an application name", color.New(color.FgRed).Sprint("▸")), 1)
+	}
+
+	env := ctx.Args().First()
+	if env == "" {
+		return cli.NewExitError(fmt.Sprintf("%s    Missing require argument, You must specify an environment variable name", color.New(color.FgRed).Sprint("▸")), 1)
+	}
+
+	return processConfigGet(&configGetContext{
+		name: name,
+		env:  env,
+		app:  ctx.App,
+		client: api.NewClient(&api.ClientOption{
+			Region: "us-east-1", // NOTE: Currently, Fargate supported region is only `us-east-1`
+		}),
+	})
+}
+
+func processConfigGet(ctx *configGetContext) error {
+	envVars, err := ctx.client.DescribeEnvVars(ctx.name)
+	if err != nil {
+		return cli.NewExitError(fmt.Sprintf("%s    Couldn't find that app.", color.New(color.FgRed).Sprint("▸")), 1)
+	}
+
+	var env string
+	for key, value := range envVars {
+		if key == ctx.env {
+			env = value
+		}
+	}
+
+	fmt.Fprintln(ctx.app.Writer, env)
+
+	return nil
+}

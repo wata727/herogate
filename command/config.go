@@ -14,3 +14,13 @@ func ConfigCommand() cli.Command {
 		Action: herogate.Config,
 	}
 }
+
+// ConfigGetCommand is a command for getting an environment variable.
+func ConfigGetCommand() cli.Command {
+	return cli.Command{
+		Name:   "config:get",
+		Usage:  "display a config value for an app",
+		Flags:  sharedFlags(),
+		Action: herogate.ConfigGet,
+	}
+}

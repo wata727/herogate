@@ -65,3 +65,53 @@ func TestProcessConfig__invalidAppName(t *testing.T) {
 		t.Fatalf("Expected error is `%s`, but get `%s`", expected, err.Error())
 	}
 }
+
+func TestProcessConfigGet(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	client := mock.NewMockClientInterface(ctrl)
+	client.EXPECT().DescribeEnvVars("young-eyrie-24091").Return(map[string]string{
+		"RAILS_ENV":       "production",
+		"RACK_ENV":        "production",
+		"SECRET_KEY_BASE": "011a60b8e222a55e0869e3dca9301a7736074189cb52782f1efd8b8a2e956fc44b25a6f2753f1662986c9519fbebdb7ebb4799becc75ac1a7faad0b55aee1b4b",
+	}, nil)
+
+	app := cli.NewApp()
+	writer := new(bytes.Buffer)
+	app.Writer = writer
+
+	err := processConfigGet(&configGetContext{
+		name:   "young-eyrie-24091",
+		env:    "RAILS_ENV",
+		app:    app,
+		client: client,
+	})
+	if err != nil {
+		t.Fatalf("Expected error is nil, but get `%s`", err.Error())
+	}
+
+	if writer.String() != "production\n" {
+		t.Fatalf("Expected to output is %s, but get `%s`", "production\n", writer.String())
+	}
+}
+
+func TestProcessConfigGet__invalidAppName(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	client := mock.NewMockClientInterface(ctrl)
+	client.EXPECT().DescribeEnvVars("young-eyrie-24091").Return(map[string]string{}, errors.New("Stack not found"))
+
+	err := processConfigGet(&configGetContext{
+		name:   "young-eyrie-24091",
+		env:    "RAILS_ENV",
+		app:    cli.NewApp(),
+		client: client,
+	})
+
+	expected := fmt.Sprintf("%s    Couldn't find that app.", color.New(color.FgRed).Sprint("▸"))
+	if err.Error() != expected {
+		t.Fatalf("Expected error is `%s`, but get `%s`", expected, err.Error())
+	}
+}
