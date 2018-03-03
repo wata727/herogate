@@ -39,10 +39,10 @@ func TestProcessConfig(t *testing.T) {
 	}
 
 	expected := fmt.Sprintf(`=== young-eyrie-24091 Config Vars
-%s:       production
 %s:        production
+%s:       production
 %s: 011a60b8e222a55e0869e3dca9301a7736074189cb52782f1efd8b8a2e956fc44b25a6f2753f1662986c9519fbebdb7ebb4799becc75ac1a7faad0b55aee1b4b
-`, color.New(color.FgGreen).Sprint("RAILS_ENV"), color.New(color.FgGreen).Sprint("RACK_ENV"), color.New(color.FgGreen).Sprint("SECRET_KEY_BASE"))
+`, color.New(color.FgGreen).Sprint("RACK_ENV"), color.New(color.FgGreen).Sprint("RAILS_ENV"), color.New(color.FgGreen).Sprint("SECRET_KEY_BASE"))
 
 	if writer.String() != expected {
 		t.Fatalf("Expected to output is %s, but get `%s`", expected, writer.String())
@@ -156,9 +156,9 @@ func TestProcessConfigSet(t *testing.T) {
 	appStr := color.New(color.FgMagenta).Sprint("⬢ young-eyrie-24091")
 	expected := fmt.Sprintf("Setting %s, %s and restarting %s...\r", railsEnv, rackEnv, appStr)
 	expected = expected + fmt.Sprintf(`Setting %s, %s and restarting %s... done
-%s: production
 %s:  production
-`, railsEnv, rackEnv, appStr, railsEnv, rackEnv)
+%s: production
+`, railsEnv, rackEnv, appStr, rackEnv, railsEnv)
 
 	if writer.String() != expected {
 		t.Fatalf("Expected to output is `%s`, but get `%s`", expected, writer.String())

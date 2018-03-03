@@ -3,6 +3,7 @@ package herogate
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
 	"github.com/fatih/color"
@@ -53,16 +54,23 @@ func processConfig(ctx *configContext) error {
 
 func putsEnvVars(envVars map[string]string, writer io.Writer) {
 	var rightLength int
-	for key := range envVars {
+	envList := []map[string]string{}
+	for key, value := range envVars {
 		if rightLength < len(key) {
 			rightLength = len(key)
 		}
+		envList = append(envList, map[string]string{"Name": key, "Value": value})
 	}
 
-	for key, value := range envVars {
+	// Sort alphabetically
+	sort.Slice(envList, func(i, j int) bool {
+		return envList[i]["Name"] < envList[j]["Name"]
+	})
+
+	for _, env := range envList {
 		// 2 = colon + space
-		str := gopad.Right(fmt.Sprintf("%s:", key), rightLength+2)
-		fmt.Fprintln(writer, strings.Replace(str, key, color.New(color.FgGreen).Sprint(key), 1)+value)
+		str := gopad.Right(fmt.Sprintf("%s:", env["Name"]), rightLength+2)
+		fmt.Fprintln(writer, strings.Replace(str, env["Name"], color.New(color.FgGreen).Sprint(env["Name"]), 1)+env["Value"])
 	}
 }
 
@@ -150,6 +158,7 @@ func ConfigSet(ctx *cli.Context) error {
 
 func processConfigSet(ctx *configSetContext) error {
 	envVars := map[string]string{}
+	envList := []string{}
 	for _, arg := range ctx.args {
 		env := strings.SplitN(arg, "=", 2)
 		if len(env) == 1 {
@@ -163,6 +172,7 @@ func processConfigSet(ctx *configSetContext) error {
 				1)
 		}
 		envVars[env[0]] = env[1]
+		envList = append(envList, color.New(color.FgGreen).Sprint(env[0]))
 	}
 
 	_, err := ctx.client.GetApp(ctx.name)
@@ -171,11 +181,7 @@ func processConfigSet(ctx *configSetContext) error {
 	}
 
 	appStr := color.New(color.FgMagenta).Sprintf("⬢ %s", ctx.name)
-	envStrList := []string{}
-	for key := range envVars {
-		envStrList = append(envStrList, color.New(color.FgGreen).Sprint(key))
-	}
-	fmt.Fprintf(ctx.app.Writer, "Setting %s and restarting %s...\r", strings.Join(envStrList, ", "), appStr)
+	fmt.Fprintf(ctx.app.Writer, "Setting %s and restarting %s...\r", strings.Join(envList, ", "), appStr)
 
 	err = ctx.client.SetEnvVars(ctx.name, envVars)
 	if err != nil {
@@ -184,7 +190,7 @@ func processConfigSet(ctx *configSetContext) error {
 		}).Fatal("Failed to set environment variables: " + err.Error())
 	}
 
-	fmt.Fprintf(ctx.app.Writer, "Setting %s and restarting %s... done\n", strings.Join(envStrList, ", "), appStr)
+	fmt.Fprintf(ctx.app.Writer, "Setting %s and restarting %s... done\n", strings.Join(envList, ", "), appStr)
 	putsEnvVars(envVars, ctx.app.Writer)
 
 	return nil
