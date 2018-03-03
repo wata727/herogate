@@ -2,6 +2,7 @@ package herogate
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/fatih/color"
@@ -44,6 +45,13 @@ func processConfig(ctx *configContext) error {
 		return cli.NewExitError(fmt.Sprintf("%s    Couldn't find that app.", color.New(color.FgRed).Sprint("▸")), 1)
 	}
 
+	fmt.Fprintln(ctx.app.Writer, fmt.Sprintf("=== %s Config Vars", ctx.name))
+	putsEnvVars(envVars, ctx.app.Writer)
+
+	return nil
+}
+
+func putsEnvVars(envVars map[string]string, writer io.Writer) {
 	var rightLength int
 	for key := range envVars {
 		if rightLength < len(key) {
@@ -51,14 +59,11 @@ func processConfig(ctx *configContext) error {
 		}
 	}
 
-	fmt.Fprintln(ctx.app.Writer, fmt.Sprintf("=== %s Config Vars", ctx.name))
 	for key, value := range envVars {
 		// 2 = colon + space
 		str := gopad.Right(fmt.Sprintf("%s:", key), rightLength+2)
-		fmt.Fprintln(ctx.app.Writer, strings.Replace(str, key, color.New(color.FgGreen).Sprint(key), 1)+value)
+		fmt.Fprintln(writer, strings.Replace(str, key, color.New(color.FgGreen).Sprint(key), 1)+value)
 	}
-
-	return nil
 }
 
 type configGetContext struct {
@@ -108,6 +113,79 @@ func processConfigGet(ctx *configGetContext) error {
 	}
 
 	fmt.Fprintln(ctx.app.Writer, env)
+
+	return nil
+}
+
+type configSetContext struct {
+	name   string
+	args   []string
+	app    *cli.App
+	client iface.ClientInterface
+}
+
+// ConfigSet injects environment variables to application containers.
+func ConfigSet(ctx *cli.Context) error {
+	_, name := detectAppFromRepo()
+	if ctx.String("app") != "" {
+		logrus.Debug("Override application name: " + ctx.String("app"))
+		name = ctx.String("app")
+	}
+	if name == "" {
+		return cli.NewExitError(fmt.Sprintf("%s    Missing require flag `-a`, You must specify an application name", color.New(color.FgRed).Sprint("▸")), 1)
+	}
+	if !ctx.Args().Present() {
+		return cli.NewExitError(fmt.Sprintf("%s    Missing require argument, You must specify key value pairs of environment variables", color.New(color.FgRed).Sprint("▸")), 1)
+	}
+
+	return processConfigSet(&configSetContext{
+		name: name,
+		args: ctx.Args(),
+		app:  ctx.App,
+		client: api.NewClient(&api.ClientOption{
+			Region: "us-east-1", // NOTE: Currently, Fargate supported region is only `us-east-1`
+		}),
+	})
+}
+
+func processConfigSet(ctx *configSetContext) error {
+	envVars := map[string]string{}
+	for _, arg := range ctx.args {
+		env := strings.SplitN(arg, "=", 2)
+		if len(env) == 1 {
+			return cli.NewExitError(
+				fmt.Sprintf(
+					"%s    %s is invalid. Must be in the format %s.",
+					color.New(color.FgRed).Sprint("▸"),
+					color.New(color.FgCyan).Sprint(env[0]),
+					color.New(color.FgCyan).Sprint("FOO=bar"),
+				),
+				1)
+		}
+		envVars[env[0]] = env[1]
+	}
+
+	_, err := ctx.client.GetApp(ctx.name)
+	if err != nil {
+		return cli.NewExitError(fmt.Sprintf("%s    Couldn't find that app.", color.New(color.FgRed).Sprint("▸")), 1)
+	}
+
+	appStr := color.New(color.FgMagenta).Sprintf("⬢ %s", ctx.name)
+	envStrList := []string{}
+	for key := range envVars {
+		envStrList = append(envStrList, color.New(color.FgGreen).Sprint(key))
+	}
+	fmt.Fprintf(ctx.app.Writer, "Setting %s and restarting %s...\r", strings.Join(envStrList, ", "), appStr)
+
+	err = ctx.client.SetEnvVars(ctx.name, envVars)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"appName": ctx.name,
+		}).Fatal("Failed to set environment variables: " + err.Error())
+	}
+
+	fmt.Fprintf(ctx.app.Writer, "Setting %s and restarting %s... done\n", strings.Join(envStrList, ", "), appStr)
+	putsEnvVars(envVars, ctx.app.Writer)
 
 	return nil
 }

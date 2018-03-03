@@ -19,4 +19,5 @@ type ClientInterface interface {
 	StackExists(stackName string) bool
 	GetAppInfo(appName string) (*objects.AppInfo, error)
 	DescribeEnvVars(appName string) (map[string]string, error)
+	SetEnvVars(appName string, envVars map[string]string) error
 }

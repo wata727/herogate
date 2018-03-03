@@ -24,3 +24,13 @@ func ConfigGetCommand() cli.Command {
 		Action: herogate.ConfigGet,
 	}
 }
+
+// ConfigSetCommand is a command for setting environment variables.
+func ConfigSetCommand() cli.Command {
+	return cli.Command{
+		Name:   "config:set",
+		Usage:  "set one or more config vars",
+		Flags:  sharedFlags(),
+		Action: herogate.ConfigSet,
+	}
+}

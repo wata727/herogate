@@ -170,3 +170,15 @@ func (m *MockClientInterface) DescribeEnvVars(appName string) (map[string]string
 func (mr *MockClientInterfaceMockRecorder) DescribeEnvVars(appName interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeEnvVars", reflect.TypeOf((*MockClientInterface)(nil).DescribeEnvVars), appName)
 }
+
+// SetEnvVars mocks base method
+func (m *MockClientInterface) SetEnvVars(appName string, envVars map[string]string) error {
+	ret := m.ctrl.Call(m, "SetEnvVars", appName, envVars)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetEnvVars indicates an expected call of SetEnvVars
+func (mr *MockClientInterfaceMockRecorder) SetEnvVars(appName, envVars interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetEnvVars", reflect.TypeOf((*MockClientInterface)(nil).SetEnvVars), appName, envVars)
+}

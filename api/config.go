@@ -3,7 +3,9 @@ package api
 import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/olebedev/config"
 	"github.com/sirupsen/logrus"
 )
 
@@ -48,4 +50,105 @@ func (c *Client) DescribeEnvVars(appName string) (map[string]string, error) {
 	}
 
 	return envVars, nil
+}
+
+// SetEnvVars updates CloudFormation stack with new environment variables.
+// It generates new template by adding or merging environment variables from existing template.
+// Because this operation restarts existing containers, It takes time to complete.
+func (c *Client) SetEnvVars(appName string, envVars map[string]string) error {
+	if _, err := c.GetApp(appName); err != nil {
+		return err
+	}
+
+	template := generateUpdatedEnvVarsTemplate(c.GetTemplate(appName), envVars)
+
+	_, err := c.cloudFormation.UpdateStack(&cloudformation.UpdateStackInput{
+		StackName:    aws.String(appName),
+		TemplateBody: aws.String(template),
+		Capabilities: []*string{aws.String("CAPABILITY_NAMED_IAM")},
+	})
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"appName": appName,
+		}).Fatal("Failed to request for updating stack: " + err.Error())
+	}
+	err = c.cloudFormation.WaitUntilStackUpdateComplete(&cloudformation.DescribeStacksInput{
+		StackName: aws.String(appName),
+	})
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"appName": appName,
+		}).Fatal("Failed to wait stack update: " + err.Error())
+	}
+
+	return nil
+}
+
+func generateUpdatedEnvVarsTemplate(base string, envVars map[string]string) string {
+	cfg, err := config.ParseYaml(base)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"template": base,
+		}).Fatal("Failed to parse yaml template" + err.Error())
+	}
+
+	envMap := map[string]string{}
+	if envs, err := cfg.List("Resources.HerogateApplicationContainer.Properties.ContainerDefinitions.0.Environment"); err == nil {
+		for _, env := range envs {
+			e, ok := env.(map[string]interface{})
+			if !ok {
+				logrus.WithFields(logrus.Fields{
+					"env": env,
+				}).Fatal("Failed to cast environment")
+			}
+
+			var key string
+			var value string
+			for k, v := range e {
+				switch k {
+				case "Name":
+					key, ok = v.(string)
+					if !ok {
+						logrus.WithFields(logrus.Fields{
+							"env": env,
+						}).Fatal("Failed to cast environment key")
+					}
+				case "Value":
+					value, ok = v.(string)
+					if !ok {
+						logrus.WithFields(logrus.Fields{
+							"env": env,
+						}).Fatal("Failed to cast environment value")
+					}
+				}
+			}
+			envMap[key] = value
+		}
+	}
+
+	for k, v := range envVars {
+		envMap[k] = v
+	}
+
+	envList := []map[string]string{}
+	for k, v := range envMap {
+		envList = append(envList, map[string]string{"Name": k, "Value": v})
+	}
+
+	err = cfg.Set("Resources.HerogateApplicationContainer.Properties.ContainerDefinitions.0.Environment", envList)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"config":  cfg,
+			"envList": envList,
+		}).Fatal("Failed to set environments to template" + err.Error())
+	}
+
+	result, err := config.RenderYaml(cfg.Root)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"config": cfg.Root,
+		}).Fatal("Failed to render yaml template" + err.Error())
+	}
+
+	return result
 }
