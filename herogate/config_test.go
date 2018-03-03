@@ -61,6 +61,9 @@ func TestProcessConfig__invalidAppName(t *testing.T) {
 		app:    cli.NewApp(),
 		client: client,
 	})
+	if err == nil {
+		t.Fatal("Expected error is not nil, but get nil")
+	}
 
 	expected := fmt.Sprintf("%s    Couldn't find that app.", color.New(color.FgRed).Sprint("▸"))
 	if err.Error() != expected {
@@ -111,6 +114,9 @@ func TestProcessConfigGet__invalidAppName(t *testing.T) {
 		app:    cli.NewApp(),
 		client: client,
 	})
+	if err == nil {
+		t.Fatal("Expected error is not nil, but get nil")
+	}
 
 	expected := fmt.Sprintf("%s    Couldn't find that app.", color.New(color.FgRed).Sprint("▸"))
 	if err.Error() != expected {
