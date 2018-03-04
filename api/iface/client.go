@@ -20,4 +20,5 @@ type ClientInterface interface {
 	GetAppInfo(appName string) (*objects.AppInfo, error)
 	DescribeEnvVars(appName string) (map[string]string, error)
 	SetEnvVars(appName string, envVars map[string]string) error
+	UnsetEnvVars(appName string, envList []string) error
 }

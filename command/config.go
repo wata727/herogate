@@ -34,3 +34,13 @@ func ConfigSetCommand() cli.Command {
 		Action: herogate.ConfigSet,
 	}
 }
+
+// ConfigUnsetCommand is a command for unsetting environment variables.
+func ConfigUnsetCommand() cli.Command {
+	return cli.Command{
+		Name:   "config:unset",
+		Usage:  "unset one or more config vars",
+		Flags:  sharedFlags(),
+		Action: herogate.ConfigUnset,
+	}
+}

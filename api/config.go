@@ -159,3 +159,97 @@ func generateUpdatedEnvVarsTemplate(base string, envVars map[string]string) stri
 
 	return result
 }
+
+// UnsetEnvVars updates CloudFormation stack with new environment variables.
+// It generates new template by deleting environment variables from existing template.
+// Because this operation restarts existing containers, It takes time to complete.
+func (c *Client) UnsetEnvVars(appName string, envList []string) error {
+	if _, err := c.GetApp(appName); err != nil {
+		return err
+	}
+
+	template := generateUnsettedEnvVarsTemplate(c.GetTemplate(appName), envList)
+
+	_, err := c.cloudFormation.UpdateStack(&cloudformation.UpdateStackInput{
+		StackName:    aws.String(appName),
+		TemplateBody: aws.String(template),
+		Capabilities: []*string{aws.String("CAPABILITY_NAMED_IAM")},
+	})
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"appName": appName,
+		}).Fatal("Failed to request for updating stack: " + err.Error())
+	}
+	err = c.cloudFormation.WaitUntilStackUpdateComplete(&cloudformation.DescribeStacksInput{
+		StackName: aws.String(appName),
+	})
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"appName": appName,
+		}).Fatal("Failed to wait stack update: " + err.Error())
+	}
+
+	return nil
+}
+
+func generateUnsettedEnvVarsTemplate(base string, envList []string) string {
+	cfg, err := config.ParseYaml(base)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"template": base,
+		}).Fatal("Failed to parse yaml template" + err.Error())
+	}
+
+	envs := []map[string]interface{}{}
+	if environments, err := cfg.List("Resources.HerogateApplicationContainer.Properties.ContainerDefinitions.0.Environment"); err == nil {
+		for _, environment := range environments {
+			env, ok := environment.(map[string]interface{})
+			if !ok {
+				logrus.WithFields(logrus.Fields{
+					"environment": environment,
+				}).Fatal("Failed to cast environment")
+			}
+
+			var ignore bool
+			for key, value := range env {
+				if key != "Name" {
+					continue
+				}
+				v, ok := value.(string)
+				if !ok {
+					logrus.WithFields(logrus.Fields{
+						"key":   key,
+						"value": value,
+					}).Fatal("Failed to cast name value")
+				}
+
+				for _, name := range envList {
+					if v == name {
+						ignore = true
+					}
+				}
+			}
+
+			if !ignore {
+				envs = append(envs, env)
+			}
+		}
+	}
+
+	err = cfg.Set("Resources.HerogateApplicationContainer.Properties.ContainerDefinitions.0.Environment", envs)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"config": cfg,
+			"envs":   envs,
+		}).Fatal("Failed to set environments to template" + err.Error())
+	}
+
+	result, err := config.RenderYaml(cfg.Root)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"config": cfg.Root,
+		}).Fatal("Failed to render yaml template" + err.Error())
+	}
+
+	return result
+}

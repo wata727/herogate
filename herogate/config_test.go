@@ -210,3 +210,64 @@ func TestProcessConfigSet__invalidAppName(t *testing.T) {
 		t.Fatalf("Expected error is `%s`, but get `%s`", expected, err.Error())
 	}
 }
+
+func TestProcessConfigUnset(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	client := mock.NewMockClientInterface(ctrl)
+	// Expect to get application
+	client.EXPECT().GetApp("young-eyrie-24091").Return(&objects.App{}, nil)
+	// Expect to set environment variables
+	client.EXPECT().UnsetEnvVars("young-eyrie-24091", []string{
+		"RAILS_ENV", "RACK_ENV",
+	}).Return(nil)
+
+	app := cli.NewApp()
+	writer := new(bytes.Buffer)
+	app.Writer = writer
+
+	err := processConfigUnset(&configUnsetContext{
+		name:    "young-eyrie-24091",
+		envList: []string{"RAILS_ENV", "RACK_ENV"},
+		app:     app,
+		client:  client,
+	})
+	if err != nil {
+		t.Fatalf("Expected error is nil, but get `%s`", err.Error())
+	}
+
+	railsEnv := color.New(color.FgGreen).Sprint("RAILS_ENV")
+	rackEnv := color.New(color.FgGreen).Sprint("RACK_ENV")
+	appStr := color.New(color.FgMagenta).Sprint("⬢ young-eyrie-24091")
+	expected := fmt.Sprintf("Unsetting %s, %s and restarting %s...\r", railsEnv, rackEnv, appStr)
+	expected = expected + fmt.Sprintf("Unsetting %s, %s and restarting %s... done\n", railsEnv, rackEnv, appStr)
+
+	if writer.String() != expected {
+		t.Fatalf("Expected to output is `%s`, but get `%s`", expected, writer.String())
+	}
+}
+
+func TestProcessConfigUnset__invalidAppName(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	client := mock.NewMockClientInterface(ctrl)
+	// Expect to get application
+	client.EXPECT().GetApp("young-eyrie-24091").Return(nil, errors.New("Stack not found"))
+
+	err := processConfigUnset(&configUnsetContext{
+		name:    "young-eyrie-24091",
+		envList: []string{"RAILS_ENV", "RACK_ENV"},
+		app:     cli.NewApp(),
+		client:  client,
+	})
+	if err == nil {
+		t.Fatal("Expected error is not nil, but get nil")
+	}
+
+	expected := fmt.Sprintf("%s    Couldn't find that app.", color.New(color.FgRed).Sprint("▸"))
+	if err.Error() != expected {
+		t.Fatalf("Expected error is `%s`, but get `%s`", expected, err.Error())
+	}
+}

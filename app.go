@@ -28,6 +28,7 @@ func NewApp() *cli.App {
 		command.ConfigCommand(),
 		command.ConfigGetCommand(),
 		command.ConfigSetCommand(),
+		command.ConfigUnsetCommand(),
 		command.LogsCommand(),
 		command.InternalCommand(),
 	}

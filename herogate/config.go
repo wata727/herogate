@@ -195,3 +195,60 @@ func processConfigSet(ctx *configSetContext) error {
 
 	return nil
 }
+
+type configUnsetContext struct {
+	name    string
+	envList []string
+	app     *cli.App
+	client  iface.ClientInterface
+}
+
+// ConfigUnset deletes environment variables from application containers.
+func ConfigUnset(ctx *cli.Context) error {
+	_, name := detectAppFromRepo()
+	if ctx.String("app") != "" {
+		logrus.Debug("Override application name: " + ctx.String("app"))
+		name = ctx.String("app")
+	}
+	if name == "" {
+		return cli.NewExitError(fmt.Sprintf("%s    Missing require flag `-a`, You must specify an application name", color.New(color.FgRed).Sprint("▸")), 1)
+	}
+	if !ctx.Args().Present() {
+		return cli.NewExitError(fmt.Sprintf("%s    Missing require argument, You must specify keys of environment variables", color.New(color.FgRed).Sprint("▸")), 1)
+	}
+
+	return processConfigUnset(&configUnsetContext{
+		name:    name,
+		envList: ctx.Args(),
+		app:     ctx.App,
+		client: api.NewClient(&api.ClientOption{
+			Region: "us-east-1", // NOTE: Currently, Fargate supported region is only `us-east-1`
+		}),
+	})
+}
+
+func processConfigUnset(ctx *configUnsetContext) error {
+	_, err := ctx.client.GetApp(ctx.name)
+	if err != nil {
+		return cli.NewExitError(fmt.Sprintf("%s    Couldn't find that app.", color.New(color.FgRed).Sprint("▸")), 1)
+	}
+
+	coloredEnvList := []string{}
+	for _, env := range ctx.envList {
+		coloredEnvList = append(coloredEnvList, color.New(color.FgGreen).Sprint(env))
+	}
+
+	appStr := color.New(color.FgMagenta).Sprintf("⬢ %s", ctx.name)
+	fmt.Fprintf(ctx.app.Writer, "Unsetting %s and restarting %s...\r", strings.Join(coloredEnvList, ", "), appStr)
+
+	err = ctx.client.UnsetEnvVars(ctx.name, ctx.envList)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"appName": ctx.name,
+		}).Fatal("Failed to set environment variables: " + err.Error())
+	}
+
+	fmt.Fprintf(ctx.app.Writer, "Unsetting %s and restarting %s... done\n", strings.Join(coloredEnvList, ", "), appStr)
+
+	return nil
+}

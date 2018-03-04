@@ -182,3 +182,15 @@ func (m *MockClientInterface) SetEnvVars(appName string, envVars map[string]stri
 func (mr *MockClientInterfaceMockRecorder) SetEnvVars(appName, envVars interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetEnvVars", reflect.TypeOf((*MockClientInterface)(nil).SetEnvVars), appName, envVars)
 }
+
+// UnsetEnvVars mocks base method
+func (m *MockClientInterface) UnsetEnvVars(appName string, envList []string) error {
+	ret := m.ctrl.Call(m, "UnsetEnvVars", appName, envList)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UnsetEnvVars indicates an expected call of UnsetEnvVars
+func (mr *MockClientInterfaceMockRecorder) UnsetEnvVars(appName, envList interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnsetEnvVars", reflect.TypeOf((*MockClientInterface)(nil).UnsetEnvVars), appName, envList)
+}
