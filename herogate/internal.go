@@ -2,19 +2,25 @@ package herogate
 
 import (
 	"fmt"
+	"io/ioutil"
+	"sort"
+	"strings"
 
+	"github.com/hecticjeff/procfile"
 	"github.com/olebedev/config"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"github.com/wata727/herogate/api"
 	"github.com/wata727/herogate/api/iface"
+	"github.com/wata727/herogate/container"
 )
 
 type internalGenerateTemplateContext struct {
-	name   string
-	image  string
-	app    *cli.App
-	client iface.ClientInterface
+	name     string
+	image    string
+	procfile string
+	app      *cli.App
+	client   iface.ClientInterface
 }
 
 // InternalGenerateTemplate generates new stack template from image name.
@@ -30,11 +36,17 @@ func InternalGenerateTemplate(ctx *cli.Context) error {
 		return cli.NewExitError("ERROR: The image is required", 1)
 	}
 
+	file, err := ioutil.ReadFile("Procfile")
+	if err != nil {
+		logrus.Debug("Failed to load Procfile")
+	}
+
 	processInternalGenerateTemplate(&internalGenerateTemplateContext{
-		name:   name,
-		image:  image,
-		app:    ctx.App,
-		client: api.NewClient(&api.ClientOption{}),
+		name:     name,
+		image:    image,
+		procfile: string(file),
+		app:      ctx.App,
+		client:   api.NewClient(&api.ClientOption{}),
 	})
 
 	return nil
@@ -50,12 +62,31 @@ func processInternalGenerateTemplate(ctx *internalGenerateTemplateContext) {
 		}).Fatal("Failed to parse yaml template" + err.Error())
 	}
 
-	err = cfg.Set("Resources.HerogateApplicationContainer.Properties.ContainerDefinitions.0.Image", ctx.image)
+	environment, err := cfg.List("Resources.HerogateApplicationContainer.Properties.ContainerDefinitions.0.Environment")
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
-			"appName": ctx.name,
-			"config":  cfg,
-		}).Fatal("Failed to set image to template" + err.Error())
+			"config": cfg,
+		}).Debug("Failed to get environment list" + err.Error())
+	}
+
+	definitions := []*container.Definition{}
+	proclist := procfile.Parse(ctx.procfile)
+	for name, process := range proclist {
+		command := process.Command + " " + strings.Join(process.Arguments, " ")
+		definitions = append(definitions, container.New(name, ctx.image, command, environment))
+	}
+	sort.Slice(definitions, func(i, j int) bool {
+		return definitions[i].Name < definitions[j].Name
+	})
+
+	if len(definitions) > 0 {
+		err = cfg.Set("Resources.HerogateApplicationContainer.Properties.ContainerDefinitions", definitions)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"definitions": definitions,
+				"config":      cfg,
+			}).Fatal("Failed to set container definitions to template" + err.Error())
+		}
 	}
 
 	result, err := config.RenderYaml(cfg.Root)

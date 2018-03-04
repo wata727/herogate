@@ -63,3 +63,7 @@
 [[constraint]]
   name = "github.com/rhymond/gopad"
   version = "1.0.1"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/hecticjeff/procfile"
