@@ -1,6 +1,8 @@
 package api
 
 import (
+	"sort"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
@@ -134,6 +136,11 @@ func generateUpdatedEnvVarsTemplate(base string, envVars map[string]string) stri
 	for k, v := range envMap {
 		envList = append(envList, map[string]string{"Name": k, "Value": v})
 	}
+
+	// Sort alphabetically
+	sort.Slice(envList, func(i, j int) bool {
+		return envList[i]["Name"] < envList[j]["Name"]
+	})
 
 	err = cfg.Set("Resources.HerogateApplicationContainer.Properties.ContainerDefinitions.0.Environment", envList)
 	if err != nil {

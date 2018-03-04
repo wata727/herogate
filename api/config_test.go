@@ -152,9 +152,9 @@ Resources:
     Properties:
       ContainerDefinitions:
       - Environment:
-        - Name: RAILS_ENV
-          Value: production
         - Name: RACK_ENV
+          Value: production
+        - Name: RAILS_ENV
           Value: production
         Image: httpd:2.4
         Name: web
@@ -242,10 +242,10 @@ Resources:
       - Environment:
         - Name: RACK_ENV
           Value: production
-        - Name: SECRET_KEY_BASE
-          Value: 011a60b8e222a55e0869e3dca9301a7736074189cb52782f1efd8b8a2e956fc44b25a6f2753f1662986c9519fbebdb7ebb4799becc75ac1a7faad0b55aee1b4b
         - Name: RAILS_ENV
           Value: production
+        - Name: SECRET_KEY_BASE
+          Value: 011a60b8e222a55e0869e3dca9301a7736074189cb52782f1efd8b8a2e956fc44b25a6f2753f1662986c9519fbebdb7ebb4799becc75ac1a7faad0b55aee1b4b
         Image: httpd:2.4
         Name: web
     Type: AWS::ECS::TaskDefinition
