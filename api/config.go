@@ -56,13 +56,18 @@ func (c *Client) DescribeEnvVars(appName string) (map[string]string, error) {
 
 // SetEnvVars updates CloudFormation stack with new environment variables.
 // It generates new template by adding or merging environment variables from existing template.
+// When the template did not change, it does not perform updates.
 // Because this operation restarts existing containers, It takes time to complete.
 func (c *Client) SetEnvVars(appName string, envVars map[string]string) error {
 	if _, err := c.GetApp(appName); err != nil {
 		return err
 	}
 
-	template := generateUpdatedEnvVarsTemplate(c.GetTemplate(appName), envVars)
+	base := c.GetTemplate(appName)
+	template := generateUpdatedEnvVarsTemplate(base, envVars)
+	if base == template {
+		return nil
+	}
 
 	_, err := c.cloudFormation.UpdateStack(&cloudformation.UpdateStackInput{
 		StackName:    aws.String(appName),
@@ -162,13 +167,18 @@ func generateUpdatedEnvVarsTemplate(base string, envVars map[string]string) stri
 
 // UnsetEnvVars updates CloudFormation stack with new environment variables.
 // It generates new template by deleting environment variables from existing template.
+// When the template did not change, it does not perform updates.
 // Because this operation restarts existing containers, It takes time to complete.
 func (c *Client) UnsetEnvVars(appName string, envList []string) error {
 	if _, err := c.GetApp(appName); err != nil {
 		return err
 	}
 
-	template := generateUnsettedEnvVarsTemplate(c.GetTemplate(appName), envList)
+	base := c.GetTemplate(appName)
+	template := generateUnsettedEnvVarsTemplate(base, envList)
+	if base == template {
+		return nil
+	}
 
 	_, err := c.cloudFormation.UpdateStack(&cloudformation.UpdateStackInput{
 		StackName:    aws.String(appName),
