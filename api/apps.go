@@ -182,13 +182,43 @@ func (c *Client) DestroyApp(appName string) error {
 			"appName": appName,
 		}).Debugf("Failed to get S3 bucket: " + err.Error())
 	} else {
-		_, err = c.s3.DeleteBucket(&s3.DeleteBucketInput{
+		s3Objects, err := c.s3.ListObjects(&s3.ListObjectsInput{
 			Bucket: s3Resource.StackResourceDetail.PhysicalResourceId,
 		})
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
 				"appName": appName,
-			}).Debugf("Failed to delete S3 bucket: " + err.Error())
+				"bucket":  aws.StringValue(s3Resource.StackResourceDetail.PhysicalResourceId),
+			}).Debugf("Failed to list S3 objects: " + err.Error())
+		} else {
+			if len(s3Objects.Contents) > 0 {
+				objectsToDelete := make([]*s3.ObjectIdentifier, len(s3Objects.Contents))
+				for i, v := range s3Objects.Contents {
+					objectsToDelete[i] = &s3.ObjectIdentifier{Key: v.Key}
+				}
+
+				_, err = c.s3.DeleteObjects(&s3.DeleteObjectsInput{
+					Bucket: s3Resource.StackResourceDetail.PhysicalResourceId,
+					Delete: &s3.Delete{Objects: objectsToDelete},
+				})
+				if err != nil {
+					logrus.WithFields(logrus.Fields{
+						"appName": appName,
+						"bucket":  aws.StringValue(s3Resource.StackResourceDetail.PhysicalResourceId),
+						"objects": objectsToDelete,
+					}).Fatalf("Failed to delete S3 objects: " + err.Error())
+				}
+			}
+
+			_, err = c.s3.DeleteBucket(&s3.DeleteBucketInput{
+				Bucket: s3Resource.StackResourceDetail.PhysicalResourceId,
+			})
+			if err != nil {
+				logrus.WithFields(logrus.Fields{
+					"appName": appName,
+					"bucket":  aws.StringValue(s3Resource.StackResourceDetail.PhysicalResourceId),
+				}).Fatalf("Failed to delete S3 bucket: " + err.Error())
+			}
 		}
 	}
 
