@@ -10,7 +10,7 @@ func TestNew(t *testing.T) {
 	definition := New(
 		"worker",
 		"your-app:1.0",
-		"bundle exec sidekiq",
+		[]string{"bundle", "exec", "sidekiq"},
 		[]interface{}{
 			map[string]string{
 				"Name":  "RAILS_ENV",
@@ -42,7 +42,9 @@ func TestNew(t *testing.T) {
 - Name: worker
   Image: your-app:1.0
   Command:
-  - bundle exec sidekiq
+  - bundle
+  - exec
+  - sidekiq
   Environment:
   - Name: RAILS_ENV
     Value: production
@@ -68,7 +70,7 @@ func TestNew__web(t *testing.T) {
 	definition := New(
 		"web",
 		"your-app:1.0",
-		"bundle exec puma",
+		[]string{"bundle", "exec", "puma"},
 		[]interface{}{
 			map[string]string{
 				"Name":  "RAILS_ENV",
@@ -100,7 +102,9 @@ func TestNew__web(t *testing.T) {
 - Name: web
   Image: your-app:1.0
   Command:
-  - bundle exec puma
+  - bundle
+  - exec
+  - puma
   Environment:
   - Name: RAILS_ENV
     Value: production

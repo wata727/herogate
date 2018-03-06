@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"sort"
-	"strings"
 
 	"github.com/hecticjeff/procfile"
 	"github.com/olebedev/config"
@@ -72,8 +71,10 @@ func processInternalGenerateTemplate(ctx *internalGenerateTemplateContext) {
 	definitions := []*container.Definition{}
 	proclist := procfile.Parse(ctx.procfile)
 	for name, process := range proclist {
-		command := process.Command + " " + strings.Join(process.Arguments, " ")
-		definitions = append(definitions, container.New(name, ctx.image, command, environment))
+		definitions = append(
+			definitions,
+			container.New(name, ctx.image, append([]string{process.Command}, process.Arguments...), environment),
+		)
 	}
 	sort.Slice(definitions, func(i, j int) bool {
 		return definitions[i].Name < definitions[j].Name

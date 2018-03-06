@@ -38,11 +38,11 @@ type RefObject struct {
 
 // New initializes container definition resource type for CFn by attributes.
 // You can generate CFn template using `config.Set()`.
-func New(name string, image string, command string, environment []interface{}) *Definition {
+func New(name string, image string, command []string, environment []interface{}) *Definition {
 	definition := &Definition{
 		Name:        name,
 		Image:       image,
-		Command:     []string{command},
+		Command:     command,
 		Environment: environment,
 		LogConfiguration: &LogConfiguration{
 			LogDriver: "awslogs",

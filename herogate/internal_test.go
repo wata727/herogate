@@ -46,7 +46,9 @@ Resources:
       - Name: web
         Image: myapp:0.1
         Command:
-        - bundle exec puma
+        - bundle
+        - exec
+        - puma
         Environment: []
         PortMappings:
         - ContainerPort: 80
@@ -61,7 +63,9 @@ Resources:
       - Name: worker
         Image: myapp:0.1
         Command:
-        - bundle exec sidekiq
+        - bundle
+        - exec
+        - sidekiq
         Environment: []
         PortMappings: []
         LogConfiguration:
@@ -123,7 +127,9 @@ Resources:
       - Name: web
         Image: myapp:0.1
         Command:
-        - bundle exec puma
+        - bundle
+        - exec
+        - puma
         Environment:
         - Name: RAILS_ENV
           Value: production
@@ -142,7 +148,9 @@ Resources:
       - Name: worker
         Image: myapp:0.1
         Command:
-        - bundle exec sidekiq
+        - bundle
+        - exec
+        - sidekiq
         Environment:
         - Name: RAILS_ENV
           Value: production
