@@ -18,6 +18,7 @@ type AppInfo struct {
 
 // Container is Herogate application container.
 type Container struct {
-	Name  string
-	Count int64
+	Name    string
+	Count   int64
+	Command []string
 }

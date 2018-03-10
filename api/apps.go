@@ -401,8 +401,9 @@ func (c *Client) GetAppInfo(appName string) (*objects.AppInfo, error) {
 	containers := []*objects.Container{}
 	for _, container := range taskResp.TaskDefinition.ContainerDefinitions {
 		containers = append(containers, &objects.Container{
-			Name:  aws.StringValue(container.Name),
-			Count: aws.Int64Value(service.RunningCount),
+			Name:    aws.StringValue(container.Name),
+			Count:   aws.Int64Value(service.RunningCount),
+			Command: aws.StringValueSlice(container.Command),
 		})
 	}
 

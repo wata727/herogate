@@ -692,7 +692,8 @@ func TestGetAppInfo(t *testing.T) {
 		TaskDefinition: &ecs.TaskDefinition{
 			ContainerDefinitions: []*ecs.ContainerDefinition{
 				{
-					Name: aws.String("web"),
+					Name:    aws.String("web"),
+					Command: []*string{},
 				},
 			},
 		},
@@ -717,8 +718,9 @@ func TestGetAppInfo(t *testing.T) {
 		},
 		Containers: []*objects.Container{
 			{
-				Name:  "web",
-				Count: 1,
+				Name:    "web",
+				Count:   1,
+				Command: []string{},
 			},
 		},
 		Region: "us-east-1",
