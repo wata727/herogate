@@ -15,6 +15,8 @@ Herogate wraps management services on AWS and provides a Heroku like interface. 
 
 When pushing the new source code to CodeCommit, the Pipeline executes and a new image is built on CodeBuild. Finally, CloudFormation updates Fargate's service with the created image.
 
+For details, you can see internal section in the [documentation](docs).
+
 ## Installation
 
 Currently, you need to build from the source code when installing.
@@ -86,7 +88,7 @@ $ herogate logs
 
 ## Usage
 
-TBD
+Please check the [documentation](docs) for details.
 
 ## Developing
 
