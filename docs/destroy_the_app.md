@@ -11,7 +11,7 @@ Destroying... done
 ```
 
 ```
-$ herogate destory --confirm young-eyrie-24091
+$ herogate destroy --confirm young-eyrie-24091
 Destroying... done
 ```
 
